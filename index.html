@@ -1,0 +1,2670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garage Gym">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon.png">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Garage Gym</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one column sized for a tablet on the wall; two columns when two people train at once. */
+:root {
+  --bg: #eceeed; --surface: #ffffff; --ink: #1a1e21; --muted: #5a6269; --rule: #d2d7d4; --well: #f4f5f4;
+  --blue: #1d5aa6; --blue-ink: #ffffff; --blue-soft: #e2eaf6;
+  --teal: #0c6f67; --teal-ink: #ffffff; --teal-soft: #dcefec;
+  --good: #1c7541; --good-soft: #e1f1e7; --warn: #8f5405; --warn-soft: #f8ecd9; --bad: #b3261e; --bad-soft: #f9e4e2;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --accent: var(--blue); --accent-ink: var(--blue-ink); --accent-soft: var(--blue-soft);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111315; --surface: #1b1f22; --ink: #e8ebed; --muted: #9aa3aa; --rule: #30373c; --well: #23282c;
+    --blue: #7fadea; --blue-ink: #0b1a2c; --blue-soft: #1b2a3c;
+    --teal: #55c7b9; --teal-ink: #08211e; --teal-soft: #152f2c;
+    --good: #62d08f; --good-soft: #17301f; --warn: #f0b35a; --warn-soft: #33270f; --bad: #ff8a80; --bad-soft: #3a1b19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111315; --surface: #1b1f22; --ink: #e8ebed; --muted: #9aa3aa; --rule: #30373c; --well: #23282c;
+  --blue: #7fadea; --blue-ink: #0b1a2c; --blue-soft: #1b2a3c;
+  --teal: #55c7b9; --teal-ink: #08211e; --teal-soft: #152f2c;
+  --good: #62d08f; --good-soft: #17301f; --warn: #f0b35a; --warn-soft: #33270f; --bad: #ff8a80; --bad-soft: #3a1b19;
+  color-scheme: dark;
+}
+.c-blue { --accent: var(--blue); --accent-ink: var(--blue-ink); --accent-soft: var(--blue-soft); }
+.c-teal { --accent: var(--teal); --accent-ink: var(--teal-ink); --accent-soft: var(--teal-soft); }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+#app { max-width: 46rem; margin: 0 auto; padding-top: 0.75rem; padding-bottom: 2rem; padding-block: 0.75rem 2rem;
+  padding-left: 16px; padding-right: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#app.v-workout { max-width: 78rem; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-size: 1.9rem; text-transform: uppercase; letter-spacing: 0.02em; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.15rem; margin: 1.1rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+p { margin: 0 0 0.7rem; }
+button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sub { color: var(--muted); font-size: 0.92rem; }
+.hint { color: var(--muted); font-size: 0.92rem; margin: 0.75rem 0; }
+
+/* buttons */
+.btn { display: inline-block; min-height: 3rem; padding: 0.55rem 1rem; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--surface); font-weight: 600; cursor: pointer; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.big { display: block; width: 100%; min-height: 3.6rem; font-size: 1.15rem; }
+.btn.small { min-height: 2.4rem; padding: 0.3rem 0.8rem; font-size: 0.95rem; }
+.btn.round { width: 3.2rem; height: 3.2rem; min-height: 0; padding: 0; border-radius: 50%; font-size: 1.6rem; line-height: 1; }
+.btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+.link { background: none; border: 0; padding: 0.5rem 0.25rem; color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.back { background: none; border: 0; padding: 0.6rem 0.4rem 0.6rem 0; color: var(--accent); font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0 0.9rem; }
+.top h1 { flex: 1; min-width: 0; }
+.top .back + h1 { margin-left: 0.75rem; }
+.toplinks { white-space: nowrap; }
+.toplinks .link + .link { margin-left: 0.75rem; }
+.status { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.status i { display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--good); margin-right: 0.4rem; }
+.status.warn { color: var(--warn); }
+.status.warn i { background: var(--warn); }
+
+/* cards */
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1.1rem; margin-bottom: 1rem; }
+.cardhead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 0.4rem; }
+.cardhead select { font: inherit; padding: 0.45rem 0.6rem; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink); max-width: 100%; }
+.empty { background: var(--surface); border: 1px dashed var(--rule); border-radius: 10px; padding: 1.5rem; text-align: center; }
+.empty .btn { margin-top: 0.5rem; }
+
+/* home */
+.people { display: grid; grid-template-columns: 1fr; grid-gap: 1rem; }
+@media (min-width: 640px) { .people.n2 { grid-template-columns: 1fr 1fr; } }
+.person { border-top: 6px solid var(--accent); margin: 0; }
+.person h2 { font-size: 2.2rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.person .next { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; margin-top: 0.6rem; }
+.person .btn.big { margin-top: 0.9rem; }
+.person .links { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+
+/* plan */
+.planhead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.6rem; }
+.planhead h2 { font-size: 2.4rem; text-transform: uppercase; }
+.notice { background: var(--warn-soft); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.8rem; }
+.notice p { margin: 0; }
+.exlist { list-style: none; margin: 0; padding: 0; }
+.exlist li { margin-bottom: 0.5rem; }
+.exrow { display: flex; align-items: center; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 0.8rem 0.9rem; cursor: pointer; }
+.exrow .n { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; color: var(--accent); width: 1.6rem; flex: none; }
+.exrow .what { flex: 1; min-width: 0; }
+.exrow .what b { display: block; }
+.exrow .what .sub { display: block; }
+.exrow .target { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; margin-left: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; }
+.exlist.compact .exrow { padding: 0.55rem 0.8rem; }
+.exlist.compact .target { font-size: 1.1rem; }
+.tag { display: inline-block; margin-top: 0.25rem; font-size: 0.8rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--well); color: var(--muted); }
+.tag.new { background: var(--accent-soft); color: var(--accent); }
+.tag.bad { background: var(--bad-soft); color: var(--bad); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.stickybar { position: -webkit-sticky; position: sticky; bottom: 0; padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+
+/* workout */
+.panes.two { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 1.25rem; }
+.panes:not(.two) { max-width: 44rem; margin: 0 auto; }
+.pane { min-width: 0; }
+.tabs { display: flex; max-width: 44rem; margin: 0 auto 0.6rem; }
+.tab { flex: 1; min-width: 0; min-height: 2.8rem; padding: 0.4rem 0.6rem; border: 1.5px solid var(--rule); background: var(--surface); font-weight: 600; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab:first-child { border-radius: 8px 0 0 8px; }
+.tab:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+.tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.wtop { display: flex; align-items: center; justify-content: space-between; }
+.wtop .who { font-weight: 600; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 0.5rem; }
+.bar { height: 6px; background: var(--rule); border-radius: 3px; margin: 0.4rem 0 0.9rem; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.focus { background: var(--surface); border: 1px solid var(--rule); border-top: 6px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem 1.1rem; }
+.exhead { display: flex; align-items: center; justify-content: space-between; }
+.exhead .count { color: var(--muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.focus h2 { font-size: 2.1rem; text-transform: uppercase; letter-spacing: 0.01em; }
+.setlabel { margin-top: 0.8rem; font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.big { display: flex; align-items: baseline; flex-wrap: wrap; font-family: var(--font-display); font-weight: 700; line-height: 1; margin-top: 0.2rem; font-variant-numeric: tabular-nums; }
+.big .wt { background: none; border: 0; border-bottom: 3px dotted var(--rule); padding: 0; cursor: pointer; font: inherit; }
+.big .w { font-size: 4.2rem; }
+.big .x { font-size: 2.6rem; color: var(--muted); margin: 0 0.9rem; }
+.big .r { font-size: 5.4rem; }
+.panes.two .big .w { font-size: 3.2rem; }
+.panes.two .big .r { font-size: 4.2rem; }
+@media (max-width: 420px) { .big .w { font-size: 3.1rem; } .big .r { font-size: 4.2rem; } .big .x { margin: 0 0.5rem; } }
+.notes { display: flex; justify-content: space-between; flex-wrap: wrap; color: var(--muted); font-size: 0.95rem; margin: 0.35rem 0 0.9rem; }
+.notes span + span { margin-left: 1rem; }
+.rest { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; background: var(--well); margin-bottom: 0.8rem; font-variant-numeric: tabular-nums; }
+.rest.over { background: var(--good-soft); color: var(--good); }
+.btn.done { display: block; width: 100%; min-height: 5.5rem; font-family: var(--font-display); font-size: 2.6rem; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 12px; }
+.alts { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 0.6rem; margin-top: 0.7rem; }
+.alts .btn { min-height: 3.4rem; }
+.under { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+.startbox, .missbox { background: var(--accent-soft); border-radius: 10px; padding: 0.9rem; margin-top: 0.8rem; }
+.missbox { margin-top: 0; }
+.startbox p, .missbox p { margin-bottom: 0.6rem; font-weight: 600; }
+.stepper { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
+.btn.jump { min-height: 3.2rem; min-width: 4rem; padding: 0 0.7rem; border-radius: 999px; margin: 0 0.5rem; font-variant-numeric: tabular-nums; }
+.jumps { display: flex; justify-content: flex-end; margin: 0.2rem 0 0.6rem; }
+.stepper .val { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; min-width: 7.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper.sm .val { font-size: 1.5rem; min-width: 6.5rem; }
+.stepper.sm .btn.round { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 0.6rem; margin-top: 0.8rem; }
+.mini { list-style: none; margin: 1rem 0 0; padding: 0; }
+.mini li { display: flex; align-items: baseline; padding: 0.45rem 0.2rem; border-bottom: 1px solid var(--rule); color: var(--muted); }
+.mini li.cur { color: var(--ink); font-weight: 600; }
+.mini .mark { width: 1.4rem; flex: none; color: var(--accent); }
+.mini .nm { flex: 1; min-width: 0; }
+.mini .tg { font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 0.6rem; }
+.addother { text-align: center; margin-top: 0.75rem; }
+
+/* summary */
+.summary { background: var(--surface); border: 1px solid var(--rule); border-top: 6px solid var(--accent); border-radius: 10px; padding: 1.2rem; }
+.summary h2 { font-size: 2.2rem; text-transform: uppercase; }
+.changes { list-style: none; margin: 0.9rem 0; padding: 0; }
+.changes li { padding: 0.6rem 0 0.6rem 0.8rem; border-left: 4px solid var(--rule); margin-bottom: 0.5rem; }
+.changes li b, .changes li span { display: block; }
+.changes li.good { border-color: var(--good); }
+.changes li.bad { border-color: var(--bad); }
+.changes li.warn { border-color: var(--warn); }
+
+/* progress */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 0.6rem; margin-bottom: 1rem; }
+@media (max-width: 480px) { .tiles { grid-template-columns: 1fr 1fr; } }
+.tiles div { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 0.7rem 0.8rem; }
+.tiles b { display: block; font-family: var(--font-display); font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.tiles span { color: var(--muted); font-size: 0.85rem; }
+.chart { display: block; width: 100%; height: auto; margin-top: 0.5rem; }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .tick { fill: var(--muted); font-size: 13px; font-family: var(--font-body); }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.chart .area { fill: var(--accent); opacity: 0.12; }
+.chart .dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+.chart .dot.last { fill: var(--accent); }
+.chart .dot.miss { stroke: var(--bad); }
+.chart .col { fill: var(--accent); }
+.chart .col.empty { fill: var(--rule); }
+.recent { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.recent li { display: flex; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); }
+.recent li:last-child { border-bottom: 0; }
+.recent span { flex: 1; min-width: 0; color: var(--muted); }
+.recent b { font-variant-numeric: tabular-nums; text-align: right; margin-left: 0.6rem; }
+.recent em { font-style: normal; color: var(--muted); font-size: 0.85rem; margin-left: 0.6rem; white-space: nowrap; }
+details { border-bottom: 1px solid var(--rule); }
+details summary { display: flex; align-items: baseline; padding: 0.6rem 0; cursor: pointer; }
+details summary span { width: 4.5rem; color: var(--muted); flex: none; }
+details summary b { flex: 1; }
+details summary em { font-style: normal; color: var(--muted); font-size: 0.9rem; }
+details .recent { margin: 0 0 0.6rem; padding-left: 0.5rem; }
+.cal { display: flex; margin-top: 0.6rem; }
+.calcol { flex: 1; display: grid; grid-template-rows: repeat(7, 1fr); grid-gap: 4px; margin-right: 4px; }
+.cal i { display: block; height: 1.1rem; border-radius: 3px; background: var(--well); }
+.cal i.u, .legend i.u { background: var(--accent); }
+.cal i.l, .legend i.l { background: var(--muted); }
+.cal i.future { background: transparent; border: 1px dashed var(--rule); }
+.cal i.now { box-shadow: 0 0 0 2px var(--ink); }
+.legend { margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem; }
+.legend span { margin-right: 1rem; }
+.legend i { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; }
+.reviewtext { white-space: pre-wrap; }
+.sugs { list-style: none; margin: 0 0 0.8rem; padding: 0; }
+.sugs li { padding: 0.7rem 0; border-top: 1px solid var(--rule); }
+.sugs b, .sugs span { display: block; }
+.sugs span { color: var(--muted); margin: 0.2rem 0 0.5rem; }
+.sugs em { font-style: normal; color: var(--good); font-weight: 600; }
+.warnText { color: var(--warn); }
+
+/* settings */
+.setrow { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0; border-top: 1px solid var(--rule); }
+.setrow > span { flex: 1; min-width: 0; margin-right: 0.75rem; }
+.setrow.col { display: block; }
+.setrow.col > span { display: block; margin-bottom: 0.5rem; }
+.card h2 + .setrow { border-top: 0; }
+.seg { display: flex; }
+.segb { flex: 1; min-height: 2.8rem; padding: 0.4rem 0.5rem; border: 1.5px solid var(--rule); background: var(--surface); font-weight: 600; font-size: 0.92rem; cursor: pointer; }
+.segb + .segb { border-left: 0; }
+.segb:first-child { border-radius: 8px 0 0 8px; }
+.segb:last-child { border-radius: 0 8px 8px 0; }
+.segb.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.field { display: block; margin: 0.7rem 0; }
+.field span { display: block; font-size: 0.92rem; color: var(--muted); margin-bottom: 0.25rem; }
+.field input { width: 100%; font: inherit; padding: 0.6rem 0.7rem; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink); }
+
+/* sheets */
+.scrim { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, 0.5); z-index: 10; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: var(--surface); border-radius: 16px 16px 0 0; max-width: 46rem; margin: 0 auto;
+  padding: 1.2rem max(16px, env(safe-area-inset-right, 0px)) calc(1.4rem + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet h2 { padding-right: 3rem; }
+.sheet .close { position: absolute; top: 0.6rem; right: 0.8rem; width: 2.8rem; height: 2.8rem; border-radius: 50%; border: 0; background: var(--well); font-size: 1.6rem; line-height: 1; cursor: pointer; }
+.sheet > .btn { margin-top: 0.6rem; }
+.photos { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 0.6rem; margin: 0.6rem 0; }
+.photos figure { margin: 0; }
+.photos img { display: block; width: 100%; height: auto; border-radius: 8px; background: var(--well); }
+.photos figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+.cues { margin: 0; padding-left: 1.2rem; }
+.cues li { margin-bottom: 0.35rem; }
+details.steps { margin-top: 0.8rem; border-top: 1px solid var(--rule); border-bottom: 0; }
+details.steps summary { font-weight: 600; color: var(--accent); }
+details.steps ol { padding-left: 1.3rem; margin: 0; color: var(--muted); }
+details.steps li { margin-bottom: 0.5rem; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 0.6rem; }
+@media (max-width: 420px) { .choices { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: no-preference) { .btn { transition: transform 0.05s; } }
+
+.credit { margin-top: 0.9rem; }
+.empty .field { text-align: left; }
+
+/* Older iPads (before iOS 10.3) have no CSS grid: lay the same blocks out with flexbox. */
+@supports not (display: grid) {
+  .people, .alts, .row2, .tiles, .photos, .choices, .panes.two { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-left: -0.3rem; margin-right: -0.3rem; }
+  .people > *, .alts > *, .row2 > *, .photos > *, .choices > *, .panes.two > * { -webkit-flex: 1 1 45%; flex: 1 1 45%; margin: 0.3rem; }
+  .tiles > * { -webkit-flex: 1 1 20%; flex: 1 1 20%; margin: 0.3rem; }
+  .calcol { display: block; }
+  .calcol i { margin-bottom: 4px; }
+}
+</style>
+<div id="app"><div class="empty"><p>Loading.</p></div></div>
+<script>
+// Generated by tools/build_lib.py. Exercise steps and photos: free-exercise-db (public domain).
+var EXLIB = {
+ "bench": {
+  "name": "Barbell bench press",
+  "eq": "bar",
+  "group": "chest",
+  "lo": 6,
+  "hi": 12,
+  "cues": [
+   "Set the safety arms just below chest height before you load the bar.",
+   "Feet flat, shoulder blades pulled back and down, slight arch.",
+   "Lower to mid-chest under control, then press back over the shoulders."
+  ],
+  "steps": [
+   "Lie back on a flat bench. Using a medium width grip (a grip that creates a 90-degree angle in the middle of the movement between the forearms and the upper arms), lift the bar from the rack and hold it straight over you with your arms locked. This will be your starting position.",
+   "From the starting position, breathe in and begin coming down slowly until the bar touches your middle chest.",
+   "After a brief pause, push the bar back to the starting position as you breathe out. Focus on pushing the bar using your chest muscles. Lock your arms and squeeze your chest in the contracted position at the top of the motion, hold for a second and then start coming down slowly again. Tip: Ideally, lowering the weight should take about twice as long as raising it.",
+   "Repeat the movement for the prescribed amount of repetitions.",
+   "When you are done, place the bar back in the rack."
+  ],
+  "main": 1
+ },
+ "incline_bench": {
+  "name": "Incline barbell bench press",
+  "eq": "bar",
+  "group": "chest",
+  "lo": 6,
+  "hi": 12,
+  "cues": [
+   "Set the bench to a low incline, about 30 degrees.",
+   "Lower the bar to the upper chest, elbows a little in front of the bar.",
+   "Keep your hips on the bench as you press."
+  ],
+  "steps": [
+   "Lie back on an incline bench. Using a medium-width grip (a grip that creates a 90-degree angle in the middle of the movement between the forearms and the upper arms), lift the bar from the rack and hold it straight over you with your arms locked. This will be your starting position.",
+   "As you breathe in, come down slowly until you feel the bar on you upper chest.",
+   "After a second pause, bring the bar back to the starting position as you breathe out and push the bar using your chest muscles. Lock your arms in the contracted position, squeeze your chest, hold for a second and then start coming down slowly again. Tip: it should take at least twice as long to go down than to come up.",
+   "Repeat the movement for the prescribed amount of repetitions.",
+   "When you are done, place the bar back in the rack."
+  ],
+  "main": 1
+ },
+ "db_bench": {
+  "name": "Dumbbell bench press",
+  "eq": "db",
+  "group": "chest",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Kick the dumbbells up from your thighs as you lie back.",
+   "Lower until your upper arms are about level with the bench.",
+   "Press up and slightly in; don't clank the dumbbells together."
+  ],
+  "steps": [
+   "Lie down on a flat bench with a dumbbell in each hand resting on top of your thighs. The palms of your hands will be facing each other.",
+   "Then, using your thighs to help raise the dumbbells up, lift the dumbbells one at a time so that you can hold them in front of you at shoulder width.",
+   "Once at shoulder width, rotate your wrists forward so that the palms of your hands are facing away from you. The dumbbells should be just to the sides of your chest, with your upper arm and forearm creating a 90 degree angle. Be sure to maintain full control of the dumbbells at all times. This will be your starting position.",
+   "Then, as you breathe out, use your chest to push the dumbbells up. Lock your arms at the top of the lift and squeeze your chest, hold for a second and then begin coming down slowly. Tip: Ideally, lowering the weight should take about twice as long as raising it.",
+   "Repeat the movement for the prescribed amount of repetitions of your training program."
+  ]
+ },
+ "incline_db_press": {
+  "name": "Incline dumbbell press",
+  "eq": "db",
+  "group": "chest",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Bench at about 30 degrees.",
+   "Lower the dumbbells to the sides of your upper chest.",
+   "Press straight up without letting your shoulders roll forward."
+  ],
+  "steps": [
+   "Lie back on an incline bench with a dumbbell in each hand atop your thighs. The palms of your hands will be facing each other.",
+   "Then, using your thighs to help push the dumbbells up, lift the dumbbells one at a time so that you can hold them at shoulder width.",
+   "Once you have the dumbbells raised to shoulder width, rotate your wrists forward so that the palms of your hands are facing away from you. This will be your starting position.",
+   "Be sure to keep full control of the dumbbells at all times. Then breathe out and push the dumbbells up with your chest.",
+   "Lock your arms at the top, hold for a second, and then start slowly lowering the weight. Tip Ideally, lowering the weights should take about twice as long as raising them.",
+   "Repeat the movement for the prescribed amount of repetitions.",
+   "When you are done, place the dumbbells back on your thighs and then on the floor. This is the safest manner to release the dumbbells."
+  ]
+ },
+ "db_fly": {
+  "name": "Dumbbell fly",
+  "eq": "db",
+  "group": "chest",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Keep a small, fixed bend in your elbows the whole time.",
+   "Lower in a wide arc until you feel a stretch across the chest.",
+   "Go light; this is not a pressing movement."
+  ],
+  "steps": [
+   "Lie down on a flat bench with a dumbbell on each hand resting on top of your thighs. The palms of your hand will be facing each other.",
+   "Then using your thighs to help raise the dumbbells, lift the dumbbells one at a time so you can hold them in front of you at shoulder width with the palms of your hands facing each other. Raise the dumbbells up like you're pressing them, but stop and hold just before you lock out. This will be your starting position.",
+   "With a slight bend on your elbows in order to prevent stress at the biceps tendon, lower your arms out at both sides in a wide arc until you feel a stretch on your chest. Breathe in as you perform this portion of the movement. Tip: Keep in mind that throughout the movement, the arms should remain stationary; the movement should only occur at the shoulder joint.",
+   "Return your arms back to the starting position as you squeeze your chest muscles and breathe out. Tip: Make sure to use the same arc of motion used to lower the weights.",
+   "Hold for a second at the contracted position and repeat the movement for the prescribed amount of repetitions."
+  ]
+ },
+ "db_row": {
+  "name": "One-arm dumbbell row",
+  "eq": "db1",
+  "group": "back",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "One knee and hand on the bench, back flat.",
+   "Pull the dumbbell to your hip, elbow close to your side.",
+   "Lower all the way until the arm is straight."
+  ],
+  "steps": [
+   "Choose a flat bench and place a dumbbell on each side of it.",
+   "Place the right leg on top of the end of the bench, bend your torso forward from the waist until your upper body is parallel to the floor, and place your right hand on the other end of the bench for support.",
+   "Use the left hand to pick up the dumbbell on the floor and hold the weight while keeping your lower back straight. The palm of the hand should be facing your torso. This will be your starting position.",
+   "Pull the resistance straight up to the side of your chest, keeping your upper arm close to your side and keeping the torso stationary. Breathe out as you perform this step. Tip: Concentrate on squeezing the back muscles once you reach the full contracted position. Also, make sure that the force is performed with the back muscles and not the arms. Finally, the upper torso should remain stationary and only the arms should move. The forearms should do no other work except for holding the dumbbell; therefore do not try to pull the dumbbell up using the forearms.",
+   "Lower the resistance straight down to the starting position. Breathe in as you perform this step.",
+   "Repeat the movement for the specified amount of repetitions.",
+   "Switch sides and repeat again with the other arm."
+  ],
+  "side": 1
+ },
+ "bb_row": {
+  "name": "Bent-over barbell row",
+  "eq": "bar",
+  "group": "back",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Hinge at the hips until your torso is close to level, knees slightly bent.",
+   "Pull the bar to your lower ribs.",
+   "Keep your back flat; if it rounds, lower the weight."
+  ],
+  "steps": [
+   "Holding a barbell with a pronated grip (palms facing down), bend your knees slightly and bring your torso forward, by bending at the waist, while keeping the back straight until it is almost parallel to the floor. Tip: Make sure that you keep the head up. The barbell should hang directly in front of you as your arms hang perpendicular to the floor and your torso. This is your starting position.",
+   "Now, while keeping the torso stationary, breathe out and lift the barbell to you. Keep the elbows close to the body and only use the forearms to hold the weight. At the top contracted position, squeeze the back muscles and hold for a brief pause.",
+   "Then inhale and slowly lower the barbell back to the starting position.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "db_row2": {
+  "name": "Two-dumbbell bent-over row",
+  "eq": "db",
+  "group": "back",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Hinge forward with a flat back and let the dumbbells hang.",
+   "Pull both to your hips and squeeze your shoulder blades together.",
+   "Don't jerk your torso up to finish the rep."
+  ],
+  "steps": [
+   "With a dumbbell in each hand (palms facing your torso), bend your knees slightly and bring your torso forward by bending at the waist; as you bend make sure to keep your back straight until it is almost parallel to the floor. Tip: Make sure that you keep the head up. The weights should hang directly in front of you as your arms hang perpendicular to the floor and your torso. This is your starting position.",
+   "While keeping the torso stationary, lift the dumbbells to your side (as you breathe out), keeping the elbows close to the body (do not exert any force with the forearm other than holding the weights). On the top contracted position, squeeze the back muscles and hold for a second.",
+   "Slowly lower the weight again to the starting position as you inhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "pullover": {
+  "name": "Dumbbell pullover",
+  "eq": "db1",
+  "group": "back",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Lie on the bench holding one dumbbell over your chest with both hands.",
+   "Lower it behind your head with slightly bent elbows until you feel a stretch.",
+   "Pull it back over your chest using your lats, not your triceps."
+  ],
+  "steps": [
+   "Place a dumbbell standing up on a flat bench.",
+   "Ensuring that the dumbbell stays securely placed at the top of the bench, lie perpendicular to the bench (torso across it as in forming a cross) with only your shoulders lying on the surface. Hips should be below the bench and legs bent with feet firmly on the floor. The head will be off the bench as well.",
+   "Grasp the dumbbell with both hands and hold it straight over your chest with a bend in your arms. Both palms should be pressing against the underside one of the sides of the dumbbell. This will be your starting position. Caution: Always ensure that the dumbbell used for this exercise is secure. Using a dumbbell with loose plates can result in the dumbbell falling apart and falling on your face.",
+   "While keeping your arms locked in the bent arm position, lower the weight slowly in an arc behind your head while breathing in until you feel a stretch on the chest.",
+   "At that point, bring the dumbbell back to the starting position using the arc through which the weight was lowered and exhale as you perform this movement.",
+   "Hold the weight on the initial position for a second and repeat the motion for the prescribed number of repetitions."
+  ]
+ },
+ "db_shoulder_press": {
+  "name": "Seated dumbbell shoulder press",
+  "eq": "db",
+  "group": "shoulders",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Set the bench backrest upright and keep your back against it.",
+   "Start with the dumbbells at ear height, forearms vertical.",
+   "Press up without arching your lower back off the pad."
+  ],
+  "steps": [
+   "Grab a couple of dumbbells and sit on a military press bench or a utility bench that has a back support on it as you place the dumbbells upright on top of your thighs.",
+   "Clean the dumbbells up one at a time by using your thighs to bring the dumbbells up to shoulder height at each side.",
+   "Rotate the wrists so that the palms of your hands are facing forward. This is your starting position.",
+   "As you exhale, push the dumbbells up until they touch at the top.",
+   "After a second pause, slowly come down back to the starting position as you inhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "arnold": {
+  "name": "Arnold press",
+  "eq": "db",
+  "group": "shoulders",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Start with palms facing you at chin height.",
+   "Rotate your palms forward as you press up.",
+   "Reverse the rotation on the way down."
+  ],
+  "steps": [
+   "Sit on an exercise bench with back support and hold two dumbbells in front of you at about upper chest level with your palms facing your body and your elbows bent. Tip: Your arms should be next to your torso. The starting position should look like the contracted portion of a dumbbell curl.",
+   "Now to perform the movement, raise the dumbbells as you rotate the palms of your hands until they are facing forward.",
+   "Continue lifting the dumbbells until your arms are extended above you in straight arm position. Breathe out as you perform this portion of the movement.",
+   "After a second pause at the top, begin to lower the dumbbells to the original position by rotating the palms of your hands towards you. Tip: The left arm will be rotated in a counter clockwise manner while the right one will be rotated clockwise. Breathe in as you perform this portion of the movement.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "ohp": {
+  "name": "Standing barbell press",
+  "eq": "bar",
+  "group": "shoulders",
+  "lo": 6,
+  "hi": 10,
+  "cues": [
+   "Check that the bar clears the ceiling and shelves before you start.",
+   "Squeeze your glutes and keep your ribs down so you don't lean back.",
+   "Press the bar straight up and finish with it over your shoulders."
+  ],
+  "steps": [
+   "Start by placing a barbell that is about chest high on a squat rack. Once you have selected the weights, grab the barbell using a pronated (palms facing forward) grip. Make sure to grip the bar wider than shoulder width apart from each other.",
+   "Slightly bend the knees and place the barbell on your collar bone. Lift the barbell up keeping it lying on your chest. Take a step back and position your feet shoulder width apart from each other.",
+   "Once you pick up the barbell with the correct grip length, lift the bar up over your head by locking your arms. Hold at about shoulder level and slightly in front of your head. This is your starting position.",
+   "Lower the bar down to the collarbone slowly as you inhale.",
+   "Lift the bar back up to the starting position as you exhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "lateral": {
+  "name": "Dumbbell lateral raise",
+  "eq": "db",
+  "group": "shoulders",
+  "lo": 10,
+  "hi": 20,
+  "cues": [
+   "Raise the dumbbells out to the sides to shoulder height.",
+   "Lead with your elbows and keep a slight bend in them.",
+   "Don't swing; if you have to, the weight is too heavy."
+  ],
+  "steps": [
+   "Pick a couple of dumbbells and stand with a straight torso and the dumbbells by your side at arms length with the palms of the hand facing you. This will be your starting position.",
+   "While maintaining the torso in a stationary position (no swinging), lift the dumbbells to your side with a slight bend on the elbow and the hands slightly tilted forward as if pouring water in a glass. Continue to go up until you arms are parallel to the floor. Exhale as you execute this movement and pause for a second at the top.",
+   "Lower the dumbbells back down slowly to the starting position as you inhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "rear_fly": {
+  "name": "Dumbbell reverse fly",
+  "eq": "db",
+  "group": "shoulders",
+  "lo": 10,
+  "hi": 20,
+  "cues": [
+   "Lie chest-down on an incline bench or hinge forward with a flat back.",
+   "Raise the dumbbells out to the sides, squeezing your shoulder blades.",
+   "Use a light weight and pause briefly at the top."
+  ],
+  "steps": [
+   "To begin, lie down on an incline bench with the chest and stomach pressing against the incline. Have the dumbbells in each hand with the palms facing each other (neutral grip).",
+   "Extend the arms in front of you so that they are perpendicular to the angle of the bench. The legs should be stationary while applying pressure with the ball of your toes. This is the starting position.",
+   "Maintaining the slight bend of the elbows, move the weights out and away from each other (to the side) in an arc motion while exhaling. Tip: Try to squeeze your shoulder blades together to get the best results from this exercise.",
+   "The arms should be elevated until they are parallel to the floor.",
+   "Feel the contraction and slowly lower the weights back down to the starting position while inhaling.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "front_raise": {
+  "name": "Dumbbell front raise",
+  "eq": "db",
+  "group": "shoulders",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Raise the dumbbells in front of you to shoulder height.",
+   "Keep your torso still.",
+   "Lower slowly."
+  ],
+  "steps": [
+   "Pick a couple of dumbbells and stand with a straight torso and the dumbbells on front of your thighs at arms length with the palms of the hand facing your thighs. This will be your starting position.",
+   "While maintaining the torso stationary (no swinging), lift the left dumbbell to the front with a slight bend on the elbow and the palms of the hands always facing down. Continue to go up until you arm is slightly above parallel to the floor. Exhale as you execute this portion of the movement and pause for a second at the top. Inhale after the second pause.",
+   "Now lower the dumbbell back down slowly to the starting position as you simultaneously lift the right dumbbell.",
+   "Continue alternating in this fashion until all of the recommended amount of repetitions have been performed for each arm."
+  ]
+ },
+ "shrug": {
+  "name": "Dumbbell shrug",
+  "eq": "db",
+  "group": "back",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Stand tall with the dumbbells at your sides.",
+   "Lift your shoulders straight up toward your ears and pause.",
+   "Don't roll your shoulders."
+  ],
+  "steps": [
+   "Stand erect with a dumbbell on each hand (palms facing your torso), arms extended on the sides.",
+   "Lift the dumbbells by elevating the shoulders as high as possible while you exhale. Hold the contraction at the top for a second. Tip: The arms should remain extended at all times. Refrain from using the biceps to help lift the dumbbells. Only the shoulders should be moving up and down.",
+   "Lower the dumbbells back to the original position.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "curl": {
+  "name": "Dumbbell curl",
+  "eq": "db",
+  "group": "biceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Elbows stay at your sides.",
+   "Curl up, turn your palms up fully, and squeeze at the top.",
+   "Lower all the way; don't swing your back."
+  ],
+  "steps": [
+   "Stand up straight with a dumbbell in each hand at arm's length. Keep your elbows close to your torso and rotate the palms of your hands until they are facing forward. This will be your starting position.",
+   "Now, keeping the upper arms stationary, exhale and curl the weights while contracting your biceps. Continue to raise the weights until your biceps are fully contracted and the dumbbells are at shoulder level. Hold the contracted position for a brief pause as you squeeze your biceps.",
+   "Then, inhale and slowly begin to lower the dumbbells back to the starting position.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "hammer": {
+  "name": "Hammer curl",
+  "eq": "db",
+  "group": "biceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Palms face each other the whole time.",
+   "Elbows stay at your sides.",
+   "Lower under control."
+  ],
+  "steps": [
+   "Stand up with your torso upright and a dumbbell on each hand being held at arms length. The elbows should be close to the torso.",
+   "The palms of the hands should be facing your torso. This will be your starting position.",
+   "Now, while holding your upper arm stationary, exhale and curl the weight forward while contracting the biceps. Continue to raise the weight until the biceps are fully contracted and the dumbbell is at shoulder level. Hold the contracted position for a brief moment as you squeeze the biceps. Tip: Focus on keeping the elbow stationary and only moving your forearm.",
+   "After the brief pause, inhale and slowly begin the lower the dumbbells back down to the starting position.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "bb_curl": {
+  "name": "Barbell curl",
+  "eq": "bar",
+  "group": "biceps",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Shoulder-width grip, elbows at your sides.",
+   "Curl without leaning back.",
+   "Lower until your arms are straight."
+  ],
+  "steps": [
+   "Stand up with your torso upright while holding a barbell at a shoulder-width grip. The palm of your hands should be facing forward and the elbows should be close to the torso. This will be your starting position.",
+   "While holding the upper arms stationary, curl the weights forward while contracting the biceps as you breathe out. Tip: Only the forearms should move.",
+   "Continue the movement until your biceps are fully contracted and the bar is at shoulder level. Hold the contracted position for a second and squeeze the biceps hard.",
+   "Slowly begin to bring the bar back to starting position as your breathe in.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "incline_curl": {
+  "name": "Incline dumbbell curl",
+  "eq": "db",
+  "group": "biceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Bench at about 45 to 60 degrees, arms hanging straight down.",
+   "Curl without letting your elbows drift forward.",
+   "Expect to use less weight than a standing curl."
+  ],
+  "steps": [
+   "Sit back on an incline bench with a dumbbell in each hand held at arms length. Keep your elbows close to your torso and rotate the palms of your hands until they are facing forward. This will be your starting position.",
+   "While holding the upper arm stationary, curl the weights forward while contracting the biceps as you breathe out. Only the forearms should move. Continue the movement until your biceps are fully contracted and the dumbbells are at shoulder level. Hold the contracted position for a second.",
+   "Slowly begin to bring the dumbbells back to starting position as your breathe in.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "conc_curl": {
+  "name": "Concentration curl",
+  "eq": "db1",
+  "group": "biceps",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Sit and brace your elbow against the inside of your thigh.",
+   "Curl the dumbbell toward your shoulder.",
+   "Lower slowly to a straight arm."
+  ],
+  "steps": [
+   "Sit down on a flat bench with one dumbbell in front of you between your legs. Your legs should be spread with your knees bent and feet on the floor.",
+   "Use your right arm to pick the dumbbell up. Place the back of your right upper arm on the top of your inner right thigh. Rotate the palm of your hand until it is facing forward away from your thigh. Tip: Your arm should be extended and the dumbbell should be above the floor. This will be your starting position.",
+   "While holding the upper arm stationary, curl the weights forward while contracting the biceps as you breathe out. Only the forearms should move. Continue the movement until your biceps are fully contracted and the dumbbells are at shoulder level. Tip: At the top of the movement make sure that the little finger of your arm is higher than your thumb. This guarantees a good contraction. Hold the contracted position for a second as you squeeze the biceps.",
+   "Slowly begin to bring the dumbbells back to starting position as your breathe in. Caution: Avoid swinging motions at any time.",
+   "Repeat for the recommended amount of repetitions. Then repeat the movement with the left arm."
+  ],
+  "side": 1
+ },
+ "dip_machine": {
+  "name": "Seated dip machine",
+  "eq": "mach",
+  "group": "triceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Sit back against the pad and grip the handles.",
+   "Press down until your arms are straight, elbows close to your sides.",
+   "Let the handles rise under control; don't let the plates slam."
+  ],
+  "steps": [
+   "Sit securely in a dip machine, select the weight and firmly grasp the handles.",
+   "Now keep your elbows in at your sides in order to place emphasis on the triceps. The elbows should be bent at a 90 degree angle.",
+   "As you contract the triceps, extend your arms downwards as you exhale. Tip: At the bottom of the movement, focus on keeping a little bend in your arms to keep tension on the triceps muscle.",
+   "Now slowly let your arms come back up to the starting position as you inhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "skull": {
+  "name": "Lying dumbbell triceps extension",
+  "eq": "db",
+  "group": "triceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Lie on the bench with the dumbbells straight over your shoulders.",
+   "Bend only at the elbows and lower the dumbbells beside your head.",
+   "Keep your upper arms still as you straighten."
+  ],
+  "steps": [
+   "Lie on a flat bench while holding two dumbbells directly in front of you. Your arms should be fully extended at a 90-degree angle from your torso and the floor. The palms should be facing in and the elbows should be tucked in. This is the starting position.",
+   "As you breathe in and you keep the upper arms stationary with the elbows in, slowly lower the weight until the dumbbells are near your ears.",
+   "At that point, while keeping the elbows in and the upper arms stationary, use the triceps to bring the weight back up to the starting position as you breathe out.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "oh_tri": {
+  "name": "Seated overhead triceps extension",
+  "eq": "db1",
+  "group": "triceps",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Hold one dumbbell overhead with both hands.",
+   "Lower it behind your head, elbows pointing up.",
+   "Straighten your arms without flaring your elbows wide."
+  ],
+  "steps": [
+   "Sit down on a bench with back support and grasp a dumbbell with both hands and hold it overhead at arm's length. Tip: a better way is to have somebody hand it to you especially if it is very heavy. The resistance should be resting in the palms of your hands with your thumbs around it. The palm of the hand should be facing inward. This will be your starting position.",
+   "Keeping your upper arms close to your head (elbows in) and perpendicular to the floor, lower the resistance in a semi-circular motion behind your head until your forearms touch your biceps. Tip: The upper arms should remain stationary and only the forearms should move. Breathe in as you perform this step.",
+   "Go back to the starting position by using the triceps to raise the dumbbell. Breathe out as you perform this step.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "kickback": {
+  "name": "Dumbbell triceps kickback",
+  "eq": "db",
+  "group": "triceps",
+  "lo": 10,
+  "hi": 20,
+  "cues": [
+   "Hinge forward with your upper arms level with your torso.",
+   "Straighten your arms behind you and pause.",
+   "Only your forearms move."
+  ],
+  "steps": [
+   "Start with a dumbbell in each hand and your palms facing your torso. Keep your back straight with a slight bend in the knees and bend forward at the waist. Your torso should be almost parallel to the floor. Make sure to keep your head up. Your upper arms should be close to your torso and parallel to the floor. Your forearms should be pointed towards the floor as you hold the weights. There should be a 90-degree angle formed between your forearm and upper arm. This is your starting position.",
+   "Now, while keeping your upper arms stationary, exhale and use your triceps to lift the weights until the arm is fully extended. Focus on moving the forearm.",
+   "After a brief pause at the top contraction, inhale and slowly lower the dumbbells back down to the starting position.",
+   "Repeat the movement for the prescribed amount of repetitions."
+  ]
+ },
+ "cg_bench": {
+  "name": "Close-grip bench press",
+  "eq": "bar",
+  "group": "triceps",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Grip just inside shoulder width, not narrower.",
+   "Keep your elbows close to your sides as you lower the bar.",
+   "Set the safety arms as for a normal bench press."
+  ],
+  "steps": [
+   "Lie back on a flat bench. Using a close grip (around shoulder width), lift the bar from the rack and hold it straight over you with your arms locked. This will be your starting position.",
+   "As you breathe in, come down slowly until you feel the bar on your middle chest. Tip: Make sure that - as opposed to a regular bench press - you keep the elbows close to the torso at all times in order to maximize triceps involvement.",
+   "After a second pause, bring the bar back to the starting position as you breathe out and push the bar using your triceps muscles. Lock your arms in the contracted position, hold for a second and then start coming down slowly again. Tip: It should take at least twice as long to go down than to come up.",
+   "Repeat the movement for the prescribed amount of repetitions.",
+   "When you are done, place the bar back in the rack."
+  ]
+ },
+ "bench_dip": {
+  "name": "Bench dip",
+  "eq": "body",
+  "group": "triceps",
+  "lo": 8,
+  "hi": 20,
+  "cues": [
+   "Hands on the bench edge behind you, legs out in front.",
+   "Lower until your upper arms are about level, then press up.",
+   "Stop if your shoulders hurt at the bottom."
+  ],
+  "steps": [
+   "For this exercise you will need to place a bench behind your back. With the bench perpendicular to your body, and while looking away from it, hold on to the bench on its edge with the hands fully extended, separated at shoulder width. The legs will be extended forward, bent at the waist and perpendicular to your torso. This will be your starting position.",
+   "Slowly lower your body as you inhale by bending at the elbows until you lower yourself far enough to where there is an angle slightly smaller than 90 degrees between the upper arm and the forearm. Tip: Keep the elbows as close as possible throughout the movement. Forearms should always be pointing down.",
+   "Using your triceps to bring your torso up again, lift yourself back to the starting position.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "squat": {
+  "name": "Barbell back squat",
+  "eq": "bar",
+  "group": "quads",
+  "lo": 6,
+  "hi": 10,
+  "cues": [
+   "Set the safety arms just below the bar's lowest point before you load it.",
+   "Bar across your upper back, feet about shoulder width, brace your middle.",
+   "Sit down between your hips until your thighs are level, then drive up."
+  ],
+  "steps": [
+   "This exercise is best performed inside a squat rack for safety purposes. To begin, first set the bar on a rack to just below shoulder level. Once the correct height is chosen and the bar is loaded, step under the bar and place the back of your shoulders (slightly below the neck) across it.",
+   "Hold on to the bar using both arms at each side and lift it off the rack by first pushing with your legs and at the same time straightening your torso.",
+   "Step away from the rack and position your legs using a shoulder width medium stance with the toes slightly pointed out. Keep your head up at all times and also maintain a straight back. This will be your starting position. (Note: For the purposes of this discussion we will use the medium stance described above which targets overall development; however you can choose any of the three stances discussed in the foot stances section).",
+   "Begin to slowly lower the bar by bending the knees and hips as you maintain a straight posture with the head up. Continue down until the angle between the upper leg and the calves becomes slightly less than 90-degrees. Inhale as you perform this portion of the movement. Tip: If you performed the exercise correctly, the front of the knees should make an imaginary straight line with the toes that is perpendicular to the front. If your knees are past that imaginary line (if they are past your toes) then you are placing undue stress on the knee and the exercise has been performed incorrectly.",
+   "Begin to raise the bar as you exhale by pushing the floor with the heel of your foot as you straighten the legs again and go back to the starting position.",
+   "Repeat for the recommended amount of repetitions."
+  ],
+  "main": 1
+ },
+ "deadlift": {
+  "name": "Barbell deadlift",
+  "eq": "bar",
+  "group": "hams",
+  "lo": 5,
+  "hi": 8,
+  "cues": [
+   "Bar over the middle of your feet, shins close to it.",
+   "Flat back, chest up, take the slack out of the bar before you pull.",
+   "Push the floor away and stand tall; lower the bar under control."
+  ],
+  "steps": [
+   "Stand in front of a loaded barbell.",
+   "While keeping the back as straight as possible, bend your knees, bend forward and grasp the bar using a medium (shoulder width) overhand grip. This will be the starting position of the exercise. Tip: If it is difficult to hold on to the bar with this grip, alternate your grip or use wrist straps.",
+   "While holding the bar, start the lift by pushing with your legs while simultaneously getting your torso to the upright position as you breathe out. In the upright position, stick your chest out and contract the back by bringing the shoulder blades back. Think of how the soldiers in the military look when they are in standing in attention.",
+   "Go back to the starting position by bending at the knees while simultaneously leaning the torso forward at the waist while keeping the back straight. When the weights on the bar touch the floor you are back at the starting position and ready to perform another repetition.",
+   "Perform the amount of repetitions prescribed in the program."
+  ],
+  "main": 1
+ },
+ "rdl": {
+  "name": "Romanian deadlift",
+  "eq": "bar",
+  "group": "hams",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Start standing. Push your hips back with a slight knee bend.",
+   "Slide the bar down your thighs to mid-shin, back flat.",
+   "Stand by driving your hips forward."
+  ],
+  "steps": [
+   "Put a barbell in front of you on the ground and grab it using a pronated (palms facing down) grip that a little wider than shoulder width. Tip: Depending on the weight used, you may need wrist wraps to perform the exercise and also a raised platform in order to allow for better range of motion.",
+   "Bend the knees slightly and keep the shins vertical, hips back and back straight. This will be your starting position.",
+   "Keeping your back and arms completely straight at all times, use your hips to lift the bar as you exhale. Tip: The movement should not be fast but steady and under control.",
+   "Once you are standing completely straight up, lower the bar by pushing the hips back, only slightly bending the knees, unlike when squatting. Tip: Take a deep breath at the start of the movement and keep your chest up. Hold your breath as you lower and exhale as you complete the movement.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "db_rdl": {
+  "name": "Dumbbell Romanian deadlift",
+  "eq": "db",
+  "group": "hams",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Push your hips back with a slight knee bend.",
+   "Lower the dumbbells along your legs until you feel your hamstrings stretch.",
+   "Keep your back flat throughout."
+  ],
+  "steps": [
+   "Grasp a couple of dumbbells holding them by your side at arm's length.",
+   "Stand with your torso straight and your legs spaced using a shoulder width or narrower stance. The knees should be slightly bent. This is your starting position.",
+   "Keeping the knees stationary, lower the dumbbells to over the top of your feet by bending at the waist while keeping your back straight. Keep moving forward as if you were going to pick something from the floor until you feel a stretch on the hamstrings. Exhale as you perform this movement",
+   "Start bringing your torso up straight again by extending your hips and waist until you are back at the starting position. Inhale as you perform this movement.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "goblet": {
+  "name": "Goblet squat",
+  "eq": "db1",
+  "group": "quads",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Hold one dumbbell upright against your chest.",
+   "Squat down between your knees, elbows inside them.",
+   "Keep your chest up and heels down."
+  ],
+  "steps": [
+   "Stand holding a light kettlebell by the horns close to your chest. This will be your starting position.",
+   "Squat down between your legs until your hamstrings are on your calves. Keep your chest and head up and your back straight.",
+   "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
+  ]
+ },
+ "split_squat": {
+  "name": "Dumbbell split squat",
+  "eq": "db",
+  "group": "quads",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Stand in a long stride, dumbbells at your sides.",
+   "Lower your back knee straight down toward the floor.",
+   "Push up through the front foot."
+  ],
+  "steps": [
+   "Position yourself into a staggered stance with the rear foot elevated and front foot forward.",
+   "Hold a dumbbell in each hand, letting them hang at the sides. This will be your starting position.",
+   "Begin by descending, flexing your knee and hip to lower your body down. Maintain good posture througout the movement. Keep the front knee in line with the foot as you perform the exercise.",
+   "At the bottom of the movement, drive through the heel to extend the knee and hip to return to the starting position."
+  ],
+  "side": 1
+ },
+ "lunge": {
+  "name": "Dumbbell reverse lunge",
+  "eq": "db",
+  "group": "quads",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Step one foot back and lower until both knees are bent about 90 degrees.",
+   "Push through the front foot to return.",
+   "Keep your torso upright."
+  ],
+  "steps": [
+   "Stand with your torso upright holding two dumbbells in your hands by your sides. This will be your starting position.",
+   "Step backward with your right leg around two feet or so from the left foot and lower your upper body down, while keeping the torso upright and maintaining balance. Inhale as you go down. Tip: As in the other exercises, do not allow your knee to go forward beyond your toes as you come down, as this will put undue stress on the knee joint. Make sure that you keep your front shin perpendicular to the ground. Keep the torso upright during the lunge; flexible hip flexors are important. A long lunge emphasizes the Gluteus Maximus; a short lunge emphasizes Quadriceps.",
+   "Push up and go back to the starting position as you exhale. Tip: Use the ball of your feet to push in order to accentuate the quadriceps. To focus on the glutes, press with your heels.",
+   "Now repeat with the opposite leg."
+  ],
+  "side": 1
+ },
+ "step_up": {
+  "name": "Dumbbell step-up",
+  "eq": "db",
+  "group": "quads",
+  "lo": 8,
+  "hi": 12,
+  "cues": [
+   "Use a sturdy box or step, not the bench.",
+   "Step up with the whole foot on the box and stand tall.",
+   "Lower slowly with the same leg."
+  ],
+  "steps": [
+   "Stand up straight while holding a dumbbell on each hand (palms facing the side of your legs).",
+   "Place the right foot on the elevated platform. Step on the platform by extending the hip and the knee of your right leg. Use the heel mainly to lift the rest of your body up and place the foot of the left leg on the platform as well. Breathe out as you execute the force required to come up.",
+   "Step down with the left leg by flexing the hip and knee of the right leg as you inhale. Return to the original standing position by placing the right foot of to next to the left foot on the initial position.",
+   "Repeat with the right leg for the recommended amount of repetitions and then perform with the left leg."
+  ],
+  "side": 1
+ },
+ "hip_thrust": {
+  "name": "Barbell hip thrust",
+  "eq": "bar",
+  "group": "glutes",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Upper back against the bench, bar across your hips with a pad or towel.",
+   "Drive your hips up until your body is level from shoulders to knees.",
+   "Pause at the top and keep your chin tucked."
+  ],
+  "steps": [
+   "Begin seated on the ground with a bench directly behind you. Have a loaded barbell over your legs. Using a fat bar or having a pad on the bar can greatly reduce the discomfort caused by this exercise.",
+   "Roll the bar so that it is directly above your hips, and lean back against the bench so that your shoulder blades are near the top of it.",
+   "Begin the movement by driving through your feet, extending your hips vertically through the bar. Your weight should be supported by your shoulder blades and your feet. Extend as far as possible, then reverse the motion to return to the starting position."
+  ]
+ },
+ "glute_bridge": {
+  "name": "Barbell glute bridge",
+  "eq": "bar",
+  "group": "glutes",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Lie on the floor with the bar across your hips.",
+   "Drive your hips up and squeeze at the top.",
+   "Lower under control."
+  ],
+  "steps": [
+   "Begin seated on the ground with a loaded barbell over your legs. Using a fat bar or having a pad on the bar can greatly reduce the discomfort caused by this exercise. Roll the bar so that it is directly above your hips, and lay down flat on the floor.",
+   "Begin the movement by driving through with your heels, extending your hips vertically through the bar. Your weight should be supported by your upper back and the heels of your feet.",
+   "Extend as far as possible, then reverse the motion to return to the starting position."
+  ]
+ },
+ "leg_ext": {
+  "name": "Leg extension",
+  "eq": "mach",
+  "group": "quads",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Use the leg attachment on the front of the bench.",
+   "Straighten your legs and pause at the top.",
+   "Lower slowly; don't swing."
+  ],
+  "steps": [
+   "For this exercise you will need to use a leg extension machine. First choose your weight and sit on the machine with your legs under the pad (feet pointed forward) and the hands holding the side bars. This will be your starting position. Tip: You will need to adjust the pad so that it falls on top of your lower leg (just above your feet). Also, make sure that your legs form a 90-degree angle between the lower and upper leg. If the angle is less than 90-degrees then that means the knee is over the toes which in turn creates undue stress at the knee joint. If the machine is designed that way, either look for another machine or just make sure that when you start executing the exercise you stop going down once you hit the 90-degree angle.",
+   "Using your quadriceps, extend your legs to the maximum as you exhale. Ensure that the rest of the body remains stationary on the seat. Pause a second on the contracted position.",
+   "Slowly lower the weight back to the original position as you inhale, ensuring that you do not go past the 90-degree angle limit.",
+   "Repeat for the recommended amount of times."
+  ]
+ },
+ "leg_curl": {
+  "name": "Lying leg curl",
+  "eq": "mach",
+  "group": "hams",
+  "lo": 10,
+  "hi": 15,
+  "cues": [
+   "Lie face down with the pad just above your heels.",
+   "Curl your heels toward your hips.",
+   "Keep your hips on the bench and lower slowly."
+  ],
+  "steps": [
+   "Adjust the machine lever to fit your height and lie face down on the leg curl machine with the pad of the lever on the back of your legs (just a few inches under the calves). Tip: Preferably use a leg curl machine that is angled as opposed to flat since an angled position is more favorable for hamstrings recruitment.",
+   "Keeping the torso flat on the bench, ensure your legs are fully stretched and grab the side handles of the machine. Position your toes straight (or you can also use any of the other two stances described on the foot positioning section). This will be your starting position.",
+   "As you exhale, curl your legs up as far as possible without lifting the upper legs from the pad. Once you hit the fully contracted position, hold it for a second.",
+   "As you inhale, bring the legs back to the initial position. Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "calf": {
+  "name": "Standing dumbbell calf raise",
+  "eq": "db",
+  "group": "calves",
+  "lo": 12,
+  "hi": 20,
+  "cues": [
+   "Stand with the balls of your feet on a plate or step.",
+   "Rise as high as you can and pause.",
+   "Lower your heels all the way for a stretch."
+  ],
+  "steps": [
+   "Stand with your torso upright holding two dumbbells in your hands by your sides. Place the ball of the foot on a sturdy and stable wooden board (that is around 2-3 inches tall) while your heels extend off and touch the floor. This will be your starting position.",
+   "With the toes pointing either straight (to hit all parts equally), inwards (for emphasis on the outer head) or outwards (for emphasis on the inner head), raise the heels off the floor as you exhale by contracting the calves. Hold the top contraction for a second.",
+   "As you inhale, go back to the starting position by slowly lowering the heels.",
+   "Repeat for the recommended amount of times."
+  ]
+ },
+ "seated_calf": {
+  "name": "Seated calf raise",
+  "eq": "bar",
+  "group": "calves",
+  "lo": 12,
+  "hi": 20,
+  "cues": [
+   "Sit with the bar across your lower thighs, on a pad or towel.",
+   "Balls of your feet on a plate, then raise your heels as high as you can.",
+   "Pause at the top and lower fully."
+  ],
+  "steps": [
+   "Place a block about 12 inches in front of a flat bench.",
+   "Sit on the bench and place the ball of your feet on the block.",
+   "Have someone place a barbell over your upper thighs about 3 inches above your knees and hold it there. This will be your starting position.",
+   "Raise up on your toes as high as possible as you squeeze the calves and as you breathe out.",
+   "After a second contraction, slowly go back to the starting position. Tip: To get maximum benefit stretch your calves as far as you can.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "crunch": {
+  "name": "Crunch",
+  "eq": "body",
+  "group": "abs",
+  "lo": 10,
+  "hi": 25,
+  "cues": [
+   "Lower back stays on the floor.",
+   "Curl your ribs toward your hips; don't pull on your neck.",
+   "Pause at the top."
+  ],
+  "steps": [
+   "Lie flat on your back with your feet flat on the ground, or resting on a bench with your knees bent at a 90 degree angle. If you are resting your feet on a bench, place them three to four inches apart and point your toes inward so they touch.",
+   "Now place your hands lightly on either side of your head keeping your elbows in. Tip: Don't lock your fingers behind your head.",
+   "While pushing the small of your back down in the floor to better isolate your abdominal muscles, begin to roll your shoulders off the floor.",
+   "Continue to push down as hard as you can with your lower back as you contract your abdominals and exhale. Your shoulders should come up off the floor only about four inches, and your lower back should remain on the floor. At the top of the movement, contract your abdominals hard and keep the contraction for a second. Tip: Focus on slow, controlled movement - don't cheat yourself by using momentum.",
+   "After the one second contraction, begin to come down slowly again to the starting position as you inhale.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "rev_crunch": {
+  "name": "Reverse crunch",
+  "eq": "body",
+  "group": "abs",
+  "lo": 10,
+  "hi": 20,
+  "cues": [
+   "Lie on your back with knees bent over your hips.",
+   "Curl your hips off the floor toward your chest.",
+   "Lower slowly without swinging your legs."
+  ],
+  "steps": [
+   "Lie down on the floor with your legs fully extended and arms to the side of your torso with the palms on the floor. Your arms should be stationary for the entire exercise.",
+   "Move your legs up so that your thighs are perpendicular to the floor and feet are together and parallel to the floor. This is the starting position.",
+   "While inhaling, move your legs towards the torso as you roll your pelvis backwards and you raise your hips off the floor. At the end of this movement your knees will be touching your chest.",
+   "Hold the contraction for a second and move your legs back to the starting position while exhaling.",
+   "Repeat for the recommended amount of repetitions."
+  ]
+ },
+ "leg_raise": {
+  "name": "Lying leg raise",
+  "eq": "body",
+  "group": "abs",
+  "lo": 8,
+  "hi": 15,
+  "cues": [
+   "Lie on the bench and hold it behind your head.",
+   "Raise your legs to vertical with knees slightly bent.",
+   "Lower slowly and stop before your lower back arches."
+  ],
+  "steps": [
+   "Lie with your back flat on a bench and your legs extended in front of you off the end.",
+   "Place your hands either under your glutes with your palms down or by the sides holding on to the bench. This will be your starting position.",
+   "As you keep your legs extended, straight as possible with your knees slightly bent but locked raise your legs until they make a 90-degree angle with the floor. Exhale as you perform this portion of the movement and hold the contraction at the top for a second.",
+   "Now, as you inhale, slowly lower your legs back down to the starting position."
+  ]
+ }
+};
+var DEFAULT_PROGRAM = {"UA": ["bench", "db_row", "db_shoulder_press", "curl", "dip_machine", "lateral"], "LA": ["squat", "rdl", "lunge", "leg_ext", "calf", "crunch"], "UB": ["incline_bench", "bb_row", "arnold", "hammer", "skull", "rear_fly"], "LB": ["deadlift", "goblet", "hip_thrust", "leg_curl", "seated_calf", "rev_crunch"]};
+if (typeof module !== 'undefined') { module.exports = { EXLIB: EXLIB, DEFAULT_PROGRAM: DEFAULT_PROGRAM }; }
+
+// Workout rules: what to do today and how targets change after a session.
+// Pure functions only. No screen code and no storage in this file.
+var Engine = (function () {
+  var E = {};
+
+  E.ORDER = ['UA', 'LA', 'UB', 'LB'];
+  E.WK_NAMES = { UA: 'Upper A', LA: 'Lower A', UB: 'Upper B', LB: 'Lower B' };
+
+  E.defaultEquipment = function () {
+    return { bar: 45, barStep: 5, plates: [45, 35, 25, 10, 5, 2.5], dbPairs: [15, 20, 25, 30, 35, 45], dbSingles: [60], machStep: 5 };
+  };
+
+  E.defaultSettings = function () {
+    return {
+      lightSets: 2,      // light warm-up sets before each exercise
+      lightReps: 15,
+      lightOn: 'all',    // 'all' exercises, 'first' exercise only, or 'none'
+      leadIn: true,      // one set a step below the top weight
+      extraTop: 0,       // extra top sets after the first
+      restMain: 150,     // seconds, first exercise of the day
+      restAcc: 75,       // seconds, the rest
+      holdDays: 14,      // this long away: repeat the last completed target
+      dropDays: 28       // this long away: lower the weight about 10%
+    };
+  };
+
+  E.newProfile = function (id, name, program) {
+    return {
+      id: id, name: name, rot: 0, lastDate: null, rev: 0,
+      program: JSON.parse(JSON.stringify(program)),
+      ex: {}, settings: E.defaultSettings()
+    };
+  };
+
+  // ---------- dates ----------
+  E.today = function (d) {
+    d = d || new Date();
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  };
+  E.parseDate = function (s) {
+    var p = s.split('-');
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12, 0, 0);
+  };
+  E.daysBetween = function (a, b) {
+    if (!a || !b) return null;
+    return Math.round((E.parseDate(b).getTime() - E.parseDate(a).getTime()) / 86400000);
+  };
+
+  // ---------- weights ----------
+  function roundTo(x, step) { return Math.round(x / step + 1e-9) * step; }
+  function floorTo(x, step) { return Math.floor(x / step + 1e-9) * step; }
+
+  E.ladder = function (eq, equip) {
+    if (eq === 'db') return equip.dbPairs.slice().sort(function (a, b) { return a - b; });
+    if (eq === 'db1') {
+      var all = equip.dbPairs.concat(equip.dbSingles || []);
+      var seen = {}, out = [];
+      all.forEach(function (w) { if (!seen[w]) { seen[w] = 1; out.push(w); } });
+      return out.sort(function (a, b) { return a - b; });
+    }
+    return null;
+  };
+
+  E.stepUp = function (w, eq, equip, steps) {
+    steps = steps || 1;
+    if (eq === 'bar') return w + equip.barStep * steps;
+    if (eq === 'mach') return w + equip.machStep * steps;
+    if (eq === 'body') return 0;
+    var lad = E.ladder(eq, equip), cur = w;
+    for (var s = 0; s < steps; s++) {
+      var next = null;
+      for (var i = 0; i < lad.length; i++) { if (lad[i] > cur) { next = lad[i]; break; } }
+      if (next === null) break;
+      cur = next;
+    }
+    return cur;
+  };
+
+  // Returns null when nothing lighter exists.
+  E.stepDown = function (w, eq, equip) {
+    if (eq === 'bar') return w - equip.barStep >= equip.bar ? w - equip.barStep : null;
+    if (eq === 'mach') return w - equip.machStep >= 0 && w > 0 ? w - equip.machStep : null;
+    if (eq === 'body') return null;
+    var lad = E.ladder(eq, equip), prev = null;
+    for (var i = 0; i < lad.length; i++) { if (lad[i] < w) prev = lad[i]; }
+    return prev;
+  };
+
+  // A lighter weight near pct of w, or null when none exists below w.
+  E.lightWeight = function (w, pct, eq, equip) {
+    var x;
+    if (eq === 'bar') { x = Math.max(equip.bar, roundTo(w * pct, equip.barStep)); return x < w ? x : null; }
+    if (eq === 'mach') { x = roundTo(w * pct, equip.machStep); return x > 0 && x < w ? x : null; }
+    if (eq === 'body') return null;
+    var lad = E.ladder(eq, equip), best = null;
+    for (var i = 0; i < lad.length; i++) { if (lad[i] <= w * pct) best = lad[i]; }
+    if (best === null && lad.length && lad[0] < w) best = lad[0];
+    return best;
+  };
+
+  // About 10% lighter, and always at least one step down when a step exists.
+  E.dropWeight = function (w, eq, equip) {
+    var down = E.stepDown(w, eq, equip);
+    if (down === null) return w;
+    if (eq === 'bar') return Math.max(equip.bar, Math.min(down, floorTo(w * 0.9, equip.barStep)));
+    if (eq === 'mach') return Math.max(0, Math.min(down, floorTo(w * 0.9, equip.machStep)));
+    return down;
+  };
+
+  E.startWeight = function (key, lib, equip) {
+    var ex = lib[key];
+    if (ex.eq === 'bar') return equip.bar;
+    if (ex.eq === 'mach') return equip.machStep * 4;
+    if (ex.eq === 'body') return 0;
+    return E.ladder(ex.eq, equip)[0];
+  };
+
+  // Plates for one side of the bar, biggest first. Returns null if it can't be made.
+  E.platesPerSide = function (w, equip) {
+    var side = (w - equip.bar) / 2;
+    if (side < 0) return null;
+    var out = [], plates = equip.plates.slice().sort(function (a, b) { return b - a; });
+    for (var i = 0; i < plates.length; i++) {
+      while (side >= plates[i] - 1e-9) { out.push(plates[i]); side -= plates[i]; }
+    }
+    return side > 1e-6 ? null : out;
+  };
+
+  E.fmtWeight = function (w, eq) {
+    if (eq === 'body') return 'Bodyweight';
+    var s = (Math.round(w * 10) / 10) + ' lb';
+    if (eq === 'db') return s + ' each';
+    return s;
+  };
+
+  // ---------- per-exercise state ----------
+  E.exState = function (profile, key, lib) {
+    var st = profile.ex[key];
+    if (st) return st;
+    var ex = lib[key];
+    return { w: null, r: ex.lo, lo: ex.lo, hi: ex.hi, n: 0, fails: 0, last: null, pw: null, pr: null, flag: null };
+  };
+
+  E.nextWorkout = function (profile) { return E.ORDER[profile.rot % E.ORDER.length]; };
+
+  // ---------- building a session ----------
+  E.buildSets = function (key, w, r, index, settings, equip, lib) {
+    var ex = lib[key], sets = [], i;
+    function mk(k, sw, sr) { return { k: k, w: sw, r: sr, st: null, got: null, easy: 0, t: null }; }
+    if (ex.eq === 'body') {
+      for (i = 0; i < 2 + (settings.extraTop || 0); i++) sets.push(mk('top', 0, r));
+      return sets;
+    }
+    var wantLight = settings.lightOn === 'all' || (settings.lightOn === 'first' && index === 0);
+    if (wantLight) {
+      for (i = 0; i < settings.lightSets; i++) {
+        var lw = E.lightWeight(w, 0.5 + 0.1 * i, ex.eq, equip);
+        if (lw !== null && lw < w) sets.push(mk('light', lw, settings.lightReps));
+      }
+    }
+    if (settings.leadIn) {
+      var dw = E.stepDown(w, ex.eq, equip);
+      if (dw !== null) {
+        var allSame = sets.length > 1 && sets.every(function (s) { return s.w === dw; });
+        if (allSame) sets = [sets[0]];
+        sets.push(mk('lead', dw, r));
+      }
+    }
+    for (i = 0; i < 1 + (settings.extraTop || 0); i++) sets.push(mk('top', w, r));
+    return sets;
+  };
+
+  // opts: { ignoreGap: bool, now: ms, id: string }
+  E.planSession = function (profile, wk, today, equip, lib, opts) {
+    opts = opts || {};
+    var S = profile.settings;
+    var keys = profile.program[wk];
+    var items = keys.map(function (key, index) {
+      var ex = lib[key], st = E.exState(profile, key, lib);
+      var gap = E.daysBetween(st.last, today);
+      var w = st.w, r = st.r, note = null, needsStart = false;
+      if (w === null) {
+        w = E.startWeight(key, lib, equip); needsStart = ex.eq !== 'body';
+      } else if (!opts.ignoreGap && gap !== null && st.n > 0) {
+        if (gap >= S.dropDays) {
+          var mid = st.lo + Math.floor((st.hi - st.lo) / 2);
+          var nw = E.dropWeight(st.pw !== null ? st.pw : st.w, ex.eq, equip);
+          var nr = Math.max(st.lo, Math.min(st.pr !== null ? st.pr : st.r, mid));
+          if (nw !== w || nr !== r) note = 'drop';
+          w = nw; r = nr;
+        } else if (gap >= S.holdDays && st.pw !== null) {
+          if (st.pw !== w || st.pr !== r) note = 'hold';
+          w = st.pw; r = st.pr;
+        }
+      }
+      return {
+        ex: key, eq: ex.eq, note: note, gap: gap, needsStart: needsStart,
+        target: { w: w, r: r },
+        sets: E.buildSets(key, w, r, index, S, equip, lib)
+      };
+    });
+    return {
+      id: opts.id || ('s' + (opts.now || Date.now())), pid: profile.id, wk: wk, date: today,
+      start: opts.now || Date.now(), end: null, status: 'active', rev: 0, ci: 0, si: 0, items: items
+    };
+  };
+
+  // Change the weight or reps of an exercise partway through. Finished sets stay as logged.
+  E.retarget = function (session, itemIndex, w, r, profile, equip, lib) {
+    var item = session.items[itemIndex];
+    var done = item.sets.filter(function (s) { return s.st !== null; });
+    var counts = {};
+    done.forEach(function (s) { counts[s.k] = (counts[s.k] || 0) + 1; });
+    var fresh = E.buildSets(item.ex, w, r, itemIndex, profile.settings, equip, lib);
+    var rest = [];
+    fresh.forEach(function (s) {
+      if (counts[s.k] > 0 && s.k !== 'top') { counts[s.k]--; return; }
+      rest.push(s);
+    });
+    // Top sets already logged stay; make sure at least the unlogged tops remain.
+    var topsDone = done.filter(function (s) { return s.k === 'top'; }).length;
+    var topsSeen = 0;
+    rest = rest.filter(function (s) {
+      if (s.k !== 'top') return true;
+      topsSeen++;
+      return topsSeen > topsDone;
+    });
+    item.target = { w: w, r: r };
+    item.needsStart = false;
+    item.sets = done.concat(rest);
+    return session;
+  };
+
+  // The next set that has no result yet, or null when the session is complete.
+  E.cursor = function (session) {
+    for (var i = 0; i < session.items.length; i++) {
+      for (var j = 0; j < session.items[i].sets.length; j++) {
+        if (session.items[i].sets[j].st === null) return { i: i, j: j };
+      }
+    }
+    return null;
+  };
+
+  E.logSet = function (session, i, j, status, got, easy, now) {
+    var s = session.items[i].sets[j];
+    s.st = status;
+    s.got = status === 'done' ? (got !== undefined && got !== null ? got : s.r) : (status === 'fail' ? got : null);
+    s.easy = status === 'done' ? (easy || 0) : 0;
+    s.t = now || Date.now();
+    return session;
+  };
+
+  E.skipExercise = function (session, i, now) {
+    session.items[i].sets.forEach(function (s) { if (s.st === null) { s.st = 'skip'; s.t = now || Date.now(); } });
+    return session;
+  };
+
+  E.progress = function (session) {
+    var total = 0, done = 0;
+    session.items.forEach(function (it) { it.sets.forEach(function (s) { total++; if (s.st !== null) done++; }); });
+    return { total: total, done: done };
+  };
+
+  // ---------- finishing a session ----------
+  // Returns { profile, changes, counted }. Sets with no result count as skipped.
+  E.finishSession = function (profile, session, equip, lib, now) {
+    var p = JSON.parse(JSON.stringify(profile));
+    var changes = [], counted = false;
+    session.items.forEach(function (item) {
+      item.sets.forEach(function (s) { if (s.st === null) s.st = 'skip'; });
+      var ex = lib[item.ex], base = E.exState(p, item.ex, lib);
+      var st = JSON.parse(JSON.stringify(base));
+      var w = item.target.w, r = item.target.r;
+      var tops = item.sets.filter(function (s) { return s.k === 'top'; });
+      var lead = item.sets.filter(function (s) { return s.k === 'lead'; })[0];
+      var touched = item.sets.some(function (s) { return s.st === 'done' || s.st === 'fail'; });
+      if (touched) counted = true;
+      var attempted = tops.some(function (s) { return s.st === 'done' || s.st === 'fail'; });
+      var anyFail = tops.some(function (s) { return s.st === 'fail'; });
+      var leadFail = lead && lead.st === 'fail';
+      var change = { ex: item.ex, from: { w: w, r: r }, to: { w: w, r: r }, kind: 'none' };
+
+      if (!attempted && !leadFail) {
+        // Skipped or never reached: nothing changes, but a starting weight the person picked is kept.
+        if (base.w === null && touched) { st.w = w; st.r = r; p.ex[item.ex] = st; }
+        changes.push(change);
+        return;
+      }
+      st.lo = base.lo; st.hi = base.hi;
+      if (anyFail || (!attempted && leadFail)) {
+        st.w = w; st.r = r; st.fails = (base.fails || 0) + 1;
+        change.kind = 'repeat';
+        if (st.fails >= 3) { st.flag = 'stalled'; change.kind = 'stalled'; }
+      } else if (tops.every(function (s) { return s.st === 'done'; })) {
+        var easy = 0;
+        tops.forEach(function (s) { if (s.easy > easy) easy = s.easy; });
+        st.pw = w; st.pr = r; st.fails = 0; st.flag = null;
+        var up;
+        if (ex.eq === 'body') {
+          if (r >= st.hi) { st.r = st.hi; st.flag = 'maxed'; change.kind = 'maxed'; }
+          else { st.r = Math.min(st.hi, r + (easy ? 2 : 1)); change.kind = 'reps'; }
+          st.w = 0;
+        } else if (easy === 2) {
+          up = E.stepUp(w, ex.eq, equip, ex.eq === 'bar' || ex.eq === 'mach' ? 2 : 1);
+          if (up === w) { st.w = w; st.r = Math.min(st.hi, r + 2); st.flag = r >= st.hi ? 'maxed' : null; change.kind = st.flag ? 'maxed' : 'reps'; }
+          else { st.w = up; st.r = r; change.kind = 'weight'; }
+        } else if (r >= st.hi) {
+          up = E.stepUp(w, ex.eq, equip, 1);
+          if (up === w) { st.w = w; st.r = st.hi; st.flag = 'maxed'; change.kind = 'maxed'; }
+          else { st.w = up; st.r = st.lo; change.kind = 'up'; }
+        } else {
+          st.w = w; st.r = Math.min(st.hi, r + (easy === 1 ? 2 : 1)); change.kind = 'reps';
+        }
+      } else {
+        // Some top sets done, the rest skipped: keep the same target.
+        st.w = w; st.r = r; change.kind = 'repeat';
+      }
+      st.last = session.date; st.n = (base.n || 0) + 1;
+      change.to = { w: st.w, r: st.r };
+      p.ex[item.ex] = st;
+      changes.push(change);
+    });
+    session.status = 'done';
+    session.end = now || Date.now();
+    if (counted) {
+      var idx = E.ORDER.indexOf(session.wk);
+      p.rot = (idx + 1) % E.ORDER.length;
+      p.lastDate = session.date;
+    }
+    return { profile: p, changes: changes, counted: counted };
+  };
+
+  // ---------- program edits ----------
+  E.swapExercise = function (profile, wk, index, newKey) {
+    profile.program[wk][index] = newKey;
+    return profile;
+  };
+
+  // Alternatives for one slot: same muscle group, not already in that workout.
+  E.alternatives = function (profile, wk, key, lib) {
+    var group = lib[key].group, used = profile.program[wk];
+    return Object.keys(lib).filter(function (k) {
+      return k !== key && lib[k].group === group && used.indexOf(k) < 0;
+    });
+  };
+
+  // ---------- history and stats ----------
+  E.e1rm = function (w, reps) { return w > 0 && reps > 0 ? w * (1 + reps / 30) : 0; };
+
+  // Sessions for one person, oldest first.
+  E.mySessions = function (sessions, pid) {
+    return sessions.filter(function (s) { return s.pid === pid && s.status === 'done'; })
+      .sort(function (a, b) { return a.start - b.start; });
+  };
+
+  // One point per session for an exercise: the best top set that day.
+  E.series = function (sessions, pid, key) {
+    var out = [];
+    E.mySessions(sessions, pid).forEach(function (s) {
+      s.items.forEach(function (it) {
+        if (it.ex !== key) return;
+        var best = null;
+        it.sets.forEach(function (x) {
+          if (x.k !== 'top' || (x.st !== 'done' && x.st !== 'fail')) return;
+          var reps = x.got || 0;
+          if (!best || E.e1rm(x.w, reps) > E.e1rm(best.w, best.reps) || (x.w === 0 && reps > best.reps)) {
+            best = { date: s.date, w: x.w, reps: reps, ok: x.st === 'done', target: x.r };
+          }
+        });
+        if (best) out.push(best);
+      });
+    });
+    return out;
+  };
+
+  E.weekStart = function (dateStr) {
+    var d = E.parseDate(dateStr);
+    var dow = (d.getDay() + 6) % 7; // Monday = 0
+    d.setDate(d.getDate() - dow);
+    return E.today(d);
+  };
+
+  // Totals per week (Monday start), oldest first, including empty weeks in between.
+  E.weekly = function (sessions, pid, lib, weeks, today) {
+    var map = {};
+    E.mySessions(sessions, pid).forEach(function (s) {
+      var wk = E.weekStart(s.date);
+      var m = map[wk] || (map[wk] = { week: wk, sessions: 0, sets: 0, volume: 0 });
+      m.sessions++;
+      s.items.forEach(function (it) {
+        var mult = lib[it.ex] && lib[it.ex].eq === 'db' ? 2 : 1;
+        it.sets.forEach(function (x) {
+          if (x.st !== 'done' && x.st !== 'fail') return;
+          if (x.k !== 'light') m.sets++;
+          m.volume += x.w * (x.got || 0) * mult;
+        });
+      });
+    });
+    var out = [], d = E.parseDate(E.weekStart(today));
+    d.setDate(d.getDate() - 7 * (weeks - 1));
+    for (var i = 0; i < weeks; i++) {
+      var key = E.today(d);
+      out.push(map[key] || { week: key, sessions: 0, sets: 0, volume: 0 });
+      d.setDate(d.getDate() + 7);
+    }
+    return out;
+  };
+
+  E.records = function (sessions, pid, lib) {
+    var best = {};
+    E.mySessions(sessions, pid).forEach(function (s) {
+      s.items.forEach(function (it) {
+        it.sets.forEach(function (x) {
+          if (x.k !== 'top' || x.st !== 'done') return;
+          var b = best[it.ex];
+          var score = x.w > 0 ? E.e1rm(x.w, x.got) : x.got;
+          if (!b || score > b.score) best[it.ex] = { ex: it.ex, w: x.w, reps: x.got, date: s.date, score: score };
+        });
+      });
+    });
+    return Object.keys(best).map(function (k) { return best[k]; })
+      .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  };
+
+  E.summary = function (sessions, pid, today) {
+    var mine = E.mySessions(sessions, pid);
+    var month = today.slice(0, 7), thisMonth = 0;
+    var weeksWith = {};
+    mine.forEach(function (s) {
+      if (s.date.slice(0, 7) === month) thisMonth++;
+      weeksWith[E.weekStart(s.date)] = 1;
+    });
+    // Streak: weeks in a row with at least one workout, counting back from this week or last.
+    var streak = 0, d = E.parseDate(E.weekStart(today));
+    if (!weeksWith[E.today(d)]) d.setDate(d.getDate() - 7);
+    while (weeksWith[E.today(d)]) { streak++; d.setDate(d.getDate() - 7); }
+    var last = mine.length ? mine[mine.length - 1].date : null;
+    return { total: mine.length, thisMonth: thisMonth, streak: streak, last: last, daysSince: E.daysBetween(last, today) };
+  };
+
+  // Short text version of recent history, for the review Claude writes.
+  E.reviewDigest = function (profile, sessions, lib, today, maxSessions) {
+    var mine = E.mySessions(sessions, profile.id).slice(-(maxSessions || 16));
+    var lines = mine.map(function (s) {
+      var parts = s.items.map(function (it) {
+        var tops = it.sets.filter(function (x) { return x.k === 'top'; });
+        var res = tops.map(function (x) {
+          if (x.st === 'done') return x.w + 'x' + x.got + (x.easy === 2 ? ' (way too easy)' : x.easy === 1 ? ' (easy)' : '');
+          if (x.st === 'fail') return x.w + 'x' + x.got + ' MISSED target ' + x.r;
+          return 'skipped';
+        }).join(', ');
+        return it.ex + ': ' + res;
+      });
+      return s.date + ' ' + E.WK_NAMES[s.wk] + ' | ' + parts.join(' | ');
+    });
+    var targets = [];
+    E.ORDER.forEach(function (wk) {
+      profile.program[wk].forEach(function (key) {
+        var st = E.exState(profile, key, lib);
+        targets.push(wk + ' ' + key + ' (' + lib[key].name + ', ' + lib[key].eq + '): next ' +
+          (st.w === null ? 'not started' : st.w + 'x' + st.r) + ', range ' + st.lo + '-' + st.hi +
+          ', misses in a row ' + (st.fails || 0) + (st.flag ? ', ' + st.flag : ''));
+      });
+    });
+    return { history: lines, targets: targets };
+  };
+
+  return E;
+})();
+if (typeof module !== 'undefined') { module.exports = Engine; }
+
+// Storage. Keeps everything in memory, mirrors it to this browser, and syncs it to the
+// artifact's database when the page runs inside Claude. Without the database (a local
+// preview, or signed out) the browser copy is the only copy.
+var Store = (function () {
+  var LS_KEY = 'garage-gym-data-v1';
+  var S = {
+    mode: 'starting',   // 'online' or 'local'
+    confirmed: false,   // the database has answered at least once
+    slow: false,        // ten seconds passed without an answer
+    error: null,        // code of the last failed save, if any
+    data: { equip: null, profiles: {}, sessions: {} },
+    onChange: function () {}
+  };
+  var db = null;
+  var inflight = {}, queued = {}, dirty = {}, remoteRev = {};
+
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  function pathOf(kind, id) { return kind === 'equip' ? 'gym/config' : kind + '/' + id; }
+
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && d.profiles && d.sessions) S.data = d;
+      }
+    } catch (e) { /* no browser storage: fine */ }
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(S.data)); } catch (e) { /* ignore */ }
+  }
+  function emit() { try { S.onChange(); } catch (e) { if (window.console) console.error(e); } }
+  // Saves announce the change after the current tap has finished, and only once per burst.
+  var emitTimer = null;
+  function emitSoon() {
+    if (emitTimer) return;
+    emitTimer = setTimeout(function () { emitTimer = null; emit(); }, 0);
+  }
+
+  function getLocal(kind, id) { return kind === 'equip' ? S.data.equip : S.data[kind][id]; }
+  function setLocal(kind, id, doc) {
+    if (kind === 'equip') S.data.equip = doc; else S.data[kind][id] = doc;
+  }
+
+  // Accept a document from the database unless this browser holds a newer or unsaved one.
+  function takeRemote(kind, id, doc) {
+    var path = pathOf(kind, id);
+    remoteRev[path] = doc.rev || 0;
+    if (dirty[path]) return false;
+    var cur = getLocal(kind, id);
+    if (cur && (cur.rev || 0) > (doc.rev || 0)) return false;
+    if (cur && JSON.stringify(cur) === JSON.stringify(doc)) return false;
+    setLocal(kind, id, doc);
+    return true;
+  }
+
+  function pump(path) {
+    if (!db || inflight[path] || !queued[path]) return;
+    var body = queued[path];
+    delete queued[path];
+    inflight[path] = true;
+    db.doc(path).set(body).then(function () {
+      inflight[path] = false;
+      remoteRev[path] = body.rev || 0;
+      if (queued[path]) { pump(path); return; }
+      delete dirty[path];
+      S.error = null;
+      emit();
+    }, function (e) {
+      inflight[path] = false;
+      S.error = (e && e.code) || 'unavailable';
+      if (!queued[path]) queued[path] = body;   // keep it for the next try
+      emit();
+    });
+  }
+
+  function write(kind, id, doc) {
+    var path = pathOf(kind, id);
+    saveLocal();
+    if (!db) return;
+    dirty[path] = true;
+    queued[path] = clone(doc);
+    pump(path);
+  }
+
+  // After the first full answer, upload anything this browser changed while offline.
+  function pushLocalAhead() {
+    function consider(kind, id, doc) {
+      if (!doc) return;
+      var path = pathOf(kind, id);
+      var r = remoteRev[path];
+      if (r === undefined || (doc.rev || 0) > r) write(kind, id, doc);
+    }
+    consider('equip', null, S.data.equip);
+    Object.keys(S.data.profiles).forEach(function (id) { consider('profiles', id, S.data.profiles[id]); });
+    Object.keys(S.data.sessions).forEach(function (id) { consider('sessions', id, S.data.sessions[id]); });
+  }
+
+  S.retry = function () { Object.keys(queued).forEach(pump); };
+  S.pending = function () { return Object.keys(dirty).length; };
+
+  S.saveEquip = function (equip) {
+    equip.rev = (equip.rev || 0) + 1;
+    S.data.equip = equip;
+    write('equip', null, equip);
+    emitSoon();
+  };
+  S.saveProfile = function (p) {
+    p.rev = (p.rev || 0) + 1;
+    S.data.profiles[p.id] = p;
+    write('profiles', p.id, p);
+    emitSoon();
+  };
+  S.saveSession = function (s) {
+    s.rev = (s.rev || 0) + 1;
+    S.data.sessions[s.id] = s;
+    write('sessions', s.id, s);
+    emitSoon();
+  };
+
+  S.init = function (onChange) {
+    S.onChange = onChange;
+    loadLocal();
+    var c = window.claude;
+    if (!c || typeof c.use !== 'function') {
+      S.mode = 'local'; S.confirmed = true; emit();
+      return;
+    }
+    var timer = setTimeout(function () { if (!S.confirmed) { S.slow = true; emit(); } }, 10000);
+    c.use('db').then(function (d) {
+      if (!d) {
+        clearTimeout(timer);
+        S.mode = 'local'; S.confirmed = true; emit();
+        return;
+      }
+      db = d; S.mode = 'online';
+      var got = { equip: false, profiles: false, sessions: false };
+      function settle() {
+        if (S.confirmed || !(got.equip && got.profiles && got.sessions)) return;
+        S.confirmed = true; S.slow = false;
+        clearTimeout(timer);
+        pushLocalAhead();
+      }
+      function onErr(e) {
+        S.error = (e && e.code) || 'unavailable';
+        if (!S.confirmed) { S.confirmed = true; clearTimeout(timer); }
+        emit();
+      }
+      db.doc('gym/config').onSnapshot(function (snap) {
+        if (snap.exists) takeRemote('equip', null, clone(snap.data()));
+        if (!snap.metadata.fromCache) { got.equip = true; settle(); }
+        saveLocal(); emit();
+      }, onErr);
+      db.collection('profiles').onSnapshot(function (q) {
+        q.docs.forEach(function (doc) { takeRemote('profiles', doc.id, clone(doc.data())); });
+        if (!q.metadata.fromCache) { got.profiles = true; settle(); }
+        saveLocal(); emit();
+      }, onErr);
+      db.collection('sessions').orderBy('start', 'desc').limit(600).onSnapshot(function (q) {
+        q.docs.forEach(function (doc) { takeRemote('sessions', doc.id, clone(doc.data())); });
+        if (!q.metadata.fromCache) { got.sessions = true; settle(); }
+        saveLocal(); emit();
+      }, onErr);
+    }, function () {
+      clearTimeout(timer);
+      S.mode = 'local'; S.confirmed = true; emit();
+    });
+    window.addEventListener('online', S.retry);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) S.retry(); });
+    setInterval(function () { if (Object.keys(queued).length) S.retry(); }, 30000);
+  };
+
+  return S;
+})();
+
+// Screens and taps. Reads and writes through Store, decides targets through Engine.
+(function () {
+  var E = Engine, LIB = EXLIB;
+  var root = document.getElementById('app');
+  var view = { name: 'home', pid: null };
+  var sheet = null;                 // open bottom sheet, or null
+  var rest = {};                    // pid -> { until: ms }
+  var ui = { missed: {}, gapOff: {}, summary: {}, chartEx: {}, review: {}, lastTap: {}, resetArm: {} };
+  var sample = null;                // the "ask Claude" function, when this page has it
+  var pendingRender = false, lastViewKey = '';
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var GROUPS = { chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Biceps', triceps: 'Triceps', quads: 'Quads', hams: 'Hamstrings', glutes: 'Glutes', calves: 'Calves', abs: 'Abs' };
+
+  // ---------- small helpers ----------
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function today() { return window.__gymToday || E.today(); }
+  function fmtDate(s) { var d = E.parseDate(s); return MONTHS[d.getMonth()] + ' ' + d.getDate(); }
+  function ago(days) {
+    if (days === null || days === undefined) return 'No workouts yet';
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return days + ' days ago';
+  }
+  function num(w) { return String(Math.round(w * 10) / 10); }
+  function equip() { return Store.data.equip || E.defaultEquipment(); }
+  function prof(pid) { return Store.data.profiles[pid]; }
+  function profiles() {
+    return Object.keys(Store.data.profiles).map(prof).sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
+  }
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  function allSessions(pid) {
+    var p = prof(pid), since = (p && p.resetAt) || 0;
+    return Object.keys(Store.data.sessions).map(function (k) { return Store.data.sessions[k]; })
+      .filter(function (s) { return s.pid === pid && s.start >= since; });
+  }
+  function doneSessions(pid) { return allSessions(pid).filter(function (s) { return s.status === 'done'; }); }
+  function activeSession(pid) {
+    var act = allSessions(pid).filter(function (s) { return s.status === 'active'; })
+      .sort(function (a, b) { return b.start - a.start; });
+    return act[0] || null;
+  }
+  function activePids() { return profiles().filter(function (p) { return activeSession(p.id); }).map(function (p) { return p.id; }); }
+  function exName(key) { return LIB[key] ? LIB[key].name : key; }
+
+  function weightText(eq, w) {
+    if (eq === 'body') return 'Bodyweight';
+    return num(w) + ' lb' + (eq === 'db' ? ' each' : '');
+  }
+  function weightNote(eq, w) {
+    var q = equip();
+    if (eq === 'bar') {
+      if (w <= q.bar) return 'Empty bar';
+      var pl = E.platesPerSide(w, q);
+      return pl ? 'Each side: ' + pl.map(num).join(' + ') : 'Bar plus ' + num(w - q.bar) + ' lb of plates';
+    }
+    if (eq === 'db') return 'One dumbbell in each hand';
+    if (eq === 'db1') return 'One dumbbell';
+    if (eq === 'mach') return 'Plates loaded on the machine';
+    return '';
+  }
+  function repsText(key, r) { return r + (LIB[key].side ? ' reps each side' : ' reps'); }
+  function targetText(key, w, r) {
+    var eq = LIB[key].eq;
+    return (eq === 'body' ? '' : weightText(eq, w) + ' × ') + r + (eq === 'body' ? ' reps' : '');
+  }
+  function setLabel(item, j) {
+    var s = item.sets[j], label = 'Set ' + (j + 1) + ' of ' + item.sets.length;
+    if (LIB[item.ex].eq === 'body') return label;
+    return label + ' · ' + (s.k === 'light' ? 'light set' : s.k === 'lead' ? 'lead-in set' : 'top set');
+  }
+  function colorClass(p) { return 'c-' + (p.color || 'blue'); }
+
+  // ---------- sessions that were left open on an earlier day ----------
+  function closeStale() {
+    profiles().forEach(function (p) {
+      allSessions(p.id).forEach(function (s) {
+        if (s.status !== 'active' || s.date === today()) return;
+        finishSession(p.id, s, true);
+      });
+    });
+  }
+
+  function finishSession(pid, s, quiet) {
+    var p = prof(pid);
+    s = clone(s);
+    var prog = E.progress(s);
+    var loggedSomething = s.items.some(function (it) {
+      return it.sets.some(function (x) { return x.st === 'done' || x.st === 'fail'; });
+    });
+    delete rest[pid];
+    if (!prog.done || !loggedSomething) {
+      s.status = 'void'; s.end = Date.now();
+      Store.saveSession(s);
+      return null;
+    }
+    var res = E.finishSession(p, s, equip(), LIB, Date.now());
+    if (!quiet) ui.summary[pid] = { session: s, changes: res.changes };
+    Store.saveSession(s);
+    res.profile.rev = p.rev;
+    Store.saveProfile(res.profile);
+    return res;
+  }
+
+  // ---------- charts ----------
+  function lineChart(pts) {
+    var W = 600, H = 190, L = 46, R = 18, T = 16, B = 26;
+    var ys = pts.map(function (p) { return p.y; });
+    var min = Math.min.apply(null, ys), max = Math.max.apply(null, ys);
+    if (max === min) { max += 1; min -= 1; }
+    var pad = (max - min) * 0.18; min -= pad; max += pad;
+    function x(i) { return pts.length === 1 ? L + (W - L - R) / 2 : L + i * (W - L - R) / (pts.length - 1); }
+    function y(v) { return T + (max - v) * (H - T - B) / (max - min); }
+    var grid = '', i;
+    for (i = 0; i < 3; i++) {
+      var v = min + pad + (max - min - 2 * pad) * i / 2;
+      grid += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>' +
+        '<text class="tick" x="' + (L - 8) + '" y="' + (y(v) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(v) + '</text>';
+    }
+    var path = pts.map(function (p, k) { return (k ? 'L' : 'M') + x(k).toFixed(1) + ' ' + y(p.y).toFixed(1); }).join(' ');
+    var area = path + ' L' + x(pts.length - 1).toFixed(1) + ' ' + (H - B) + ' L' + x(0).toFixed(1) + ' ' + (H - B) + ' Z';
+    var dots = pts.map(function (p, k) {
+      return '<circle class="dot' + (p.ok === false ? ' miss' : '') + (k === pts.length - 1 ? ' last' : '') + '" cx="' + x(k).toFixed(1) + '" cy="' + y(p.y).toFixed(1) + '" r="' + (k === pts.length - 1 ? 6 : 4) + '"/>';
+    }).join('');
+    var labels = '<text class="tick" x="' + L + '" y="' + (H - 6) + '">' + esc(pts[0].label) + '</text>';
+    if (pts.length > 1) labels += '<text class="tick" x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + esc(pts[pts.length - 1].label) + '</text>';
+    return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Progress chart">' + grid +
+      '<path class="area" d="' + area + '"/><path class="line" d="' + path + '"/>' + dots + labels + '</svg>';
+  }
+
+  function barChart(weeks) {
+    var W = 600, H = 150, L = 30, R = 10, T = 12, B = 24;
+    var max = Math.max.apply(null, weeks.map(function (w) { return w.sets; }).concat([1]));
+    var bw = (W - L - R) / weeks.length;
+    var bars = weeks.map(function (w, i) {
+      var h = (H - T - B) * w.sets / max;
+      return '<rect class="col' + (w.sets ? '' : ' empty') + '" x="' + (L + i * bw + 3).toFixed(1) + '" y="' + (H - B - Math.max(h, 2)).toFixed(1) +
+        '" width="' + (bw - 6).toFixed(1) + '" height="' + Math.max(h, 2).toFixed(1) + '" rx="2"/>';
+    }).join('');
+    var txt = '<text class="tick" x="' + (L - 6) + '" y="' + (T + 4) + '" text-anchor="end">' + max + '</text>' +
+      '<text class="tick" x="' + (L - 6) + '" y="' + (H - B) + '" text-anchor="end">0</text>' +
+      '<text class="tick" x="' + L + '" y="' + (H - 6) + '">' + fmtDate(weeks[0].week) + '</text>' +
+      '<text class="tick" x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">This week</text>';
+    return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Sets per week">' + bars + txt + '</svg>';
+  }
+
+  function calendar(pid, weeks) {
+    var byDate = {};
+    doneSessions(pid).forEach(function (s) { byDate[s.date] = s.wk.charAt(0) === 'U' ? 'u' : 'l'; });
+    var start = E.parseDate(E.weekStart(today()));
+    start.setDate(start.getDate() - 7 * (weeks - 1));
+    var cols = '';
+    for (var w = 0; w < weeks; w++) {
+      var cells = '';
+      for (var d = 0; d < 7; d++) {
+        var day = new Date(start.getTime()); day.setDate(start.getDate() + w * 7 + d);
+        var key = E.today(day), cls = byDate[key] || '';
+        if (key > today()) cls = 'future';
+        cells += '<i class="' + cls + (key === today() ? ' now' : '') + '" title="' + fmtDate(key) + '"></i>';
+      }
+      cols += '<div class="calcol">' + cells + '</div>';
+    }
+    return '<div class="cal" aria-label="Workout calendar, last ' + weeks + ' weeks">' + cols + '</div>' +
+      '<div class="legend"><span><i class="u"></i> Upper</span><span><i class="l"></i> Lower</span></div>';
+  }
+
+  // ---------- screens ----------
+  function statusLine() {
+    var txt, cls = '';
+    if (Store.mode === 'local') { txt = 'Saved on this device only'; cls = 'warn'; }
+    else if (!Store.confirmed) { txt = Store.slow ? 'Can\'t reach your saved data yet' : 'Loading'; cls = Store.slow ? 'warn' : ''; }
+    else if (Store.error && Store.pending()) { txt = 'Not saved online yet. Will retry.'; cls = 'warn'; }
+    else if (Store.pending()) txt = 'Saving';
+    else txt = 'Saved';
+    return '<span class="status ' + cls + '"><i></i>' + txt + '</span>';
+  }
+
+  function homeView() {
+    var ps = profiles();
+    var head = '<header class="top"><h1>Garage Gym</h1>' + statusLine() + '</header>';
+    if (!ps.length) {
+      if (!Store.confirmed) {
+        return head + '<div class="empty"><p>' + (Store.slow ? 'Can\'t reach your saved data yet. Check the Wi-Fi.' : 'Loading your data.') + '</p></div>';
+      }
+      return head + '<div class="empty"><p>Who is training? Each person gets the same four workouts and their own weights.</p>' +
+        '<label class="field"><span>First person</span><input id="name1" autocomplete="off" maxlength="20"></label>' +
+        '<label class="field"><span>Second person (optional)</span><input id="name2" autocomplete="off" maxlength="20"></label>' +
+        '<button class="btn primary big" data-act="setup">Create profiles</button></div>';
+    }
+    var cards = ps.map(function (p) {
+      var s = activeSession(p.id), sum = E.summary(doneSessions(p.id), p.id, today());
+      var wk = E.nextWorkout(p), action;
+      if (s) {
+        var pr = E.progress(s);
+        action = '<div class="next">In progress: ' + E.WK_NAMES[s.wk] + '</div><div class="sub">' + pr.done + ' of ' + pr.total + ' sets logged</div>' +
+          '<button class="btn primary big" data-act="continue" data-pid="' + p.id + '">Continue</button>';
+      } else {
+        action = '<div class="next">Next: ' + E.WK_NAMES[wk] + '</div><div class="sub">Last workout: ' + ago(sum.daysSince) + '</div>' +
+          '<button class="btn primary big" data-act="open-plan" data-pid="' + p.id + '">Open workout</button>';
+      }
+      return '<section class="card person ' + colorClass(p) + '"><h2>' + esc(p.name) + '</h2>' + action +
+        '<div class="links"><button class="link" data-act="nav" data-view="progress" data-pid="' + p.id + '">Progress</button>' +
+        '<button class="link" data-act="nav" data-view="settings" data-pid="' + p.id + '">Settings</button></div></section>';
+    }).join('');
+    return head + '<div class="people n' + ps.length + '">' + cards + '</div>';
+  }
+
+  function planView(pid) {
+    var p = prof(pid), wk = E.nextWorkout(p);
+    var prev = E.planSession(p, wk, today(), equip(), LIB, { ignoreGap: !!ui.gapOff[pid], now: 0, id: 'preview' });
+    var held = prev.items.filter(function (it) { return it.note === 'hold'; }).length;
+    var dropped = prev.items.filter(function (it) { return it.note === 'drop'; }).length;
+    var gapDays = Math.max.apply(null, prev.items.map(function (it) { return it.gap || 0; }));
+    var notice = '';
+    if (held || dropped || ui.gapOff[pid]) {
+      var msg = ui.gapOff[pid] ? 'Time-away adjustment is off for this workout.' :
+        'It has been ' + gapDays + ' days since some of these. ' +
+        (dropped ? 'Weights are about 10% lighter to ease back in.' : 'Targets repeat your last completed sets.');
+      notice = '<div class="notice"><p>' + msg + '</p><button class="link" data-act="gap-toggle" data-pid="' + pid + '">' +
+        (ui.gapOff[pid] ? 'Turn it back on' : 'Use normal targets') + '</button></div>';
+    }
+    var rows = prev.items.map(function (it, i) {
+      var st = E.exState(p, it.ex, LIB), tag = '';
+      if (it.needsStart) tag = '<span class="tag new">First time: pick a weight</span>';
+      else if (st.flag === 'stalled') tag = '<span class="tag bad">Missed 3 times in a row</span>';
+      else if (st.flag === 'maxed') tag = '<span class="tag warn">At your heaviest weight</span>';
+      else if (it.note === 'hold') tag = '<span class="tag">Repeating last time</span>';
+      else if (it.note === 'drop') tag = '<span class="tag">Lowered after time away</span>';
+      var kinds = { light: 0, lead: 0, top: 0 };
+      it.sets.forEach(function (s) { kinds[s.k]++; });
+      var total = it.sets.length, setsText = total + (total === 1 ? ' set' : ' sets');
+      if (it.needsStart) setsText = 'Warm-up sets are added once you pick a weight';
+      else if (kinds.light || kinds.lead) {
+        var parts = [];
+        if (kinds.light) parts.push(kinds.light + ' light');
+        if (kinds.lead) parts.push('1 lead-in');
+        parts.push(kinds.top + ' top');
+        setsText += ': ' + parts.join(', ');
+      }
+      return '<li><button class="exrow" data-act="ex-sheet" data-pid="' + pid + '" data-wk="' + wk + '" data-i="' + i + '">' +
+        '<span class="n">' + (i + 1) + '</span><span class="what"><b>' + esc(exName(it.ex)) + '</b>' +
+        '<span class="sub">' + setsText + '</span>' + tag + '</span>' +
+        '<span class="target">' + (it.needsStart ? 'Set weight' : esc(targetText(it.ex, it.target.w, it.target.r))) + '</span></button></li>';
+    }).join('');
+    return '<div class="' + colorClass(p) + '">' +
+      '<header class="top"><button class="back" data-act="nav" data-view="home">‹ Home</button><h1>' + esc(p.name) + '</h1>' +
+      '<span class="toplinks"><button class="link" data-act="nav" data-view="progress" data-pid="' + pid + '">Progress</button>' +
+      '<button class="link" data-act="nav" data-view="settings" data-pid="' + pid + '">Settings</button></span></header>' +
+      '<div class="planhead"><h2>' + E.WK_NAMES[wk] + '</h2><button class="link" data-act="wk-sheet" data-pid="' + pid + '">Change workout</button></div>' +
+      notice + '<ol class="exlist">' + rows + '</ol>' +
+      '<p class="hint">Tap an exercise to see how to do it, change its weight, or swap it.</p>' +
+      '<div class="stickybar"><button class="btn primary big" data-act="start" data-pid="' + pid + '">Start workout</button></div></div>';
+  }
+
+  function workoutPane(pid, multi) {
+    var p = prof(pid);
+    if (ui.summary[pid]) return summaryPane(pid);
+    var s = activeSession(pid);
+    if (!s) return '<section class="pane ' + colorClass(p) + '"><p class="hint">No workout in progress.</p></section>';
+    var cur = E.cursor(s);
+    if (!cur) return '';
+    var it = s.items[cur.i], set = it.sets[cur.j], ex = LIB[it.ex];
+    var prog = E.progress(s);
+    var canFlag = set.k !== 'light';
+    var m = ui.missed[pid];
+    var first = it.needsStart && !it.sets.some(function (x) { return x.st !== null; });
+    var q = equip();
+    var startBox = '';
+    if (first) {
+      startBox = '<div class="startbox"><p>First time on this exercise. Pick a weight you could lift for about ' + (it.target.r + 3) + ' reps.</p>' +
+        '<div class="stepper">' + jumpBtn(ex.eq, -4, pid) +
+        '<button class="btn round" data-act="adj-w" data-dir="-1" data-pid="' + pid + '" aria-label="Lighter">−</button>' +
+        '<span class="val">' + esc(weightText(ex.eq, it.target.w)) + '</span>' +
+        '<button class="btn round" data-act="adj-w" data-dir="1" data-pid="' + pid + '" aria-label="Heavier">+</button>' +
+        jumpBtn(ex.eq, 4, pid) + '</div></div>';
+    }
+    var main;
+    if (m) {
+      main = '<div class="missbox"><p>How many reps did you get?</p><div class="stepper">' +
+        '<button class="btn round" data-act="miss-step" data-dir="-1" data-pid="' + pid + '" aria-label="Fewer">−</button>' +
+        '<span class="val">' + m.n + '</span>' +
+        '<button class="btn round" data-act="miss-step" data-dir="1" data-pid="' + pid + '" aria-label="More">+</button></div>' +
+        '<div class="row2"><button class="btn" data-act="miss-cancel" data-pid="' + pid + '">Cancel</button>' +
+        '<button class="btn primary" data-act="miss-save" data-pid="' + pid + '">Save</button></div></div>';
+    } else {
+      main = '<button class="btn primary done" data-act="log" data-kind="done" data-pid="' + pid + '">Done</button>' +
+        '<div class="alts">' +
+        (canFlag ? '<button class="btn" data-act="log" data-kind="easy" data-pid="' + pid + '">Easy</button>' +
+          '<button class="btn" data-act="log" data-kind="veasy" data-pid="' + pid + '">Way too easy</button>' +
+          '<button class="btn" data-act="miss-open" data-pid="' + pid + '">Missed reps</button>' : '') +
+        '<button class="btn" data-act="log" data-kind="skip" data-pid="' + pid + '">Skip set</button></div>';
+    }
+    var list = s.items.map(function (x, i) {
+      var doneSets = x.sets.filter(function (y) { return y.st !== null; }).length;
+      var cls = i < cur.i ? 'past' : (i === cur.i ? 'cur' : '');
+      var skipped = x.sets.every(function (y) { return y.st === 'skip'; });
+      return '<li class="' + cls + '"><span class="mark">' + (i < cur.i ? (skipped ? '–' : '✓') : (i === cur.i ? '▸' : '')) + '</span>' +
+        '<span class="nm">' + esc(exName(x.ex)) + '</span><span class="tg">' + (i === cur.i ? doneSets + ' of ' + x.sets.length + ' sets' :
+          esc(targetText(x.ex, x.target.w, x.target.r))) + '</span></li>';
+    }).join('');
+    var anyLogged = prog.done > 0;
+    return '<section class="pane ' + colorClass(p) + '">' +
+      '<header class="wtop"><button class="back" data-act="nav" data-view="home">‹ Home</button>' +
+      '<span class="who">' + esc(p.name) + ' · ' + E.WK_NAMES[s.wk] + '</span>' +
+      '<button class="btn small" data-act="finish-ask" data-pid="' + pid + '">Finish</button></header>' +
+      '<div class="bar"><i style="width:' + Math.round(100 * prog.done / prog.total) + '%"></i></div>' +
+      '<div class="focus">' +
+      '<div class="exhead"><span class="count">Exercise ' + (cur.i + 1) + ' of ' + s.items.length + '</span>' +
+      '<button class="link" data-act="howto" data-key="' + it.ex + '">How to</button></div>' +
+      '<h2>' + esc(ex.name) + '</h2>' + startBox +
+      '<div class="setlabel">' + setLabel(it, cur.j) + '</div>' +
+      '<div class="big"><button class="wt" data-act="adj-sheet" data-pid="' + pid + '" aria-label="Change weight or reps">' +
+      '<span class="w">' + esc(weightText(ex.eq, set.w)) + '</span></button>' +
+      (ex.eq === 'body' ? '' : '<span class="x">×</span>') + '<span class="r">' + set.r + '</span></div>' +
+      '<div class="notes"><span>' + esc(weightNote(ex.eq, set.w)) + '</span><span>' + esc(repsText(it.ex, set.r)) + '</span></div>' +
+      '<div class="rest" data-rest="' + pid + '" hidden></div>' +
+      main +
+      '<div class="under">' + (anyLogged ? '<button class="link" data-act="undo" data-pid="' + pid + '">Undo last</button>' : '<span></span>') +
+      '<button class="link" data-act="skip-ex" data-pid="' + pid + '">Skip this exercise</button></div>' +
+      '</div>' +
+      '<ol class="mini">' + list + '</ol>' +
+      (multi ? '' : addOtherButton(pid)) +
+      '</section>';
+  }
+
+  // A bigger jump for the bar and plate-loaded machines, so a first weight takes few taps.
+  function jumpBtn(eq, steps, pid) {
+    if (eq !== 'bar' && eq !== 'mach') return '';
+    var q = equip(), amt = Math.abs(steps) * (eq === 'bar' ? q.barStep : q.machStep);
+    return '<button class="btn jump" data-act="adj-w" data-dir="' + steps + '" data-pid="' + pid + '">' + (steps < 0 ? '−' : '+') + num(amt) + '</button>';
+  }
+
+  function addOtherButton(pid) {
+    var others = profiles().filter(function (o) { return o.id !== pid && !activeSession(o.id); });
+    if (!others.length) return '';
+    return '<div class="addother">' + others.map(function (o) {
+      return '<button class="link" data-act="open-plan" data-pid="' + o.id + '">' + esc(o.name) + ' is working out too</button>';
+    }).join('') + '</div>';
+  }
+
+  function summaryPane(pid) {
+    var p = prof(pid), sm = ui.summary[pid], s = sm.session;
+    var mins = Math.max(1, Math.round((s.end - s.start) / 60000));
+    var setsDone = 0;
+    s.items.forEach(function (it) { it.sets.forEach(function (x) { if (x.st === 'done' || x.st === 'fail') setsDone++; }); });
+    var skipped = [];
+    var rows = sm.changes.map(function (c) {
+      var name = esc(exName(c.ex)), t = esc(targetText(c.ex, c.to.w, c.to.r));
+      if (c.kind === 'none') { skipped.push(name); return ''; }
+      var txt, cls = '';
+      if (c.kind === 'reps') { txt = 'Next time: ' + t + ' (' + (c.to.r - c.from.r) + ' more ' + (c.to.r - c.from.r === 1 ? 'rep' : 'reps') + ')'; cls = 'good'; }
+      else if (c.kind === 'up') { txt = 'Weight goes up. Next time: ' + t; cls = 'good'; }
+      else if (c.kind === 'weight') { txt = 'Too easy, so the weight goes up. Next time: ' + t; cls = 'good'; }
+      else if (c.kind === 'repeat') txt = 'Same target next time: ' + t;
+      else if (c.kind === 'stalled') { txt = 'Missed three times in a row. Lower the weight or swap it from the workout screen.'; cls = 'bad'; }
+      else if (c.kind === 'maxed') { txt = 'You are at the top of the range with your heaviest weight. Swap it for a harder exercise or get heavier weights.'; cls = 'warn'; }
+      return '<li class="' + cls + '"><b>' + name + '</b><span>' + txt + '</span></li>';
+    }).join('');
+    return '<section class="pane summary ' + colorClass(p) + '"><h2>' + E.WK_NAMES[s.wk] + ' done</h2>' +
+      '<p class="sub">' + esc(p.name) + ' · ' + mins + ' min · ' + setsDone + ' sets</p>' +
+      '<ul class="changes">' + rows + '</ul>' +
+      (skipped.length ? '<p class="hint">Skipped, unchanged: ' + skipped.join(', ') + '.</p>' : '') +
+      '<button class="btn primary big" data-act="summary-close" data-pid="' + pid + '">Done</button></section>';
+  }
+
+  function workoutView() {
+    var act = activePids().concat(Object.keys(ui.summary).filter(function (k) { return ui.summary[k] && !activeSession(k); }));
+    act = act.filter(function (v, i) { return act.indexOf(v) === i && prof(v); });
+    if (act.indexOf(view.pid) < 0) view.pid = act[0];
+    if (!view.pid) { view = { name: 'home' }; return homeView(); }
+    var wide = window.innerWidth >= 900;
+    if (act.length > 1 && wide) {
+      return '<div class="panes two">' + act.map(function (id) { return workoutPane(id, true); }).join('') + '</div>';
+    }
+    var tabs = '';
+    if (act.length > 1) {
+      tabs = '<div class="tabs">' + act.map(function (id) {
+        var p = prof(id), s = activeSession(id), label = esc(p.name);
+        if (s) { var c = E.cursor(s); if (c) label += ' · ' + esc(exName(s.items[c.i].ex)); }
+        return '<button class="tab ' + colorClass(p) + (id === view.pid ? ' on' : '') + '" data-act="tab" data-pid="' + id + '">' + label + '</button>';
+      }).join('') + '</div>';
+    }
+    return tabs + '<div class="panes">' + workoutPane(view.pid, act.length > 1) + '</div>';
+  }
+
+  function progressView(pid) {
+    var p = prof(pid), done = doneSessions(pid), sum = E.summary(done, pid, today());
+    var head = '<header class="top"><button class="back" data-act="open-plan" data-pid="' + pid + '">‹ ' + esc(p.name) + '</button><h1>Progress</h1><span></span></header>';
+    if (!done.length) {
+      return '<div class="' + colorClass(p) + '">' + head + '<div class="empty"><p>Nothing logged yet. Charts appear here after your first workout.</p></div></div>';
+    }
+    var tiles = '<div class="tiles">' +
+      '<div><b>' + sum.total + '</b><span>workouts</span></div>' +
+      '<div><b>' + sum.thisMonth + '</b><span>this month</span></div>' +
+      '<div><b>' + sum.streak + '</b><span>' + (sum.streak === 1 ? 'week in a row' : 'weeks in a row') + '</span></div>' +
+      '<div><b>' + (sum.daysSince <= 0 ? 'Today' : sum.daysSince + 'd') + '</b><span>since last</span></div></div>';
+    // exercise chart
+    var keys = [];
+    done.forEach(function (s) { s.items.forEach(function (it) { if (keys.indexOf(it.ex) < 0 && E.series(done, pid, it.ex).length) keys.push(it.ex); }); });
+    var sel = ui.chartEx[pid] && keys.indexOf(ui.chartEx[pid]) >= 0 ? ui.chartEx[pid] : keys[0];
+    var chart = '';
+    if (sel) {
+      var ser = E.series(done, pid, sel), body = LIB[sel].eq === 'body';
+      var pts = ser.map(function (x) { return { y: body ? x.reps : E.e1rm(x.w, x.reps), label: fmtDate(x.date), ok: x.ok }; });
+      var first = pts[0].y, last = pts[pts.length - 1].y;
+      var delta = pts.length > 1 ? Math.round((last - first) / first * 100) : 0;
+      var recent = ser.slice(-5).reverse().map(function (x) {
+        return '<li><span>' + fmtDate(x.date) + '</span><b>' + esc(targetText(sel, x.w, x.reps)) + '</b>' + (x.ok ? '' : '<em>missed ' + x.target + '</em>') + '</li>';
+      }).join('');
+      chart = '<section class="card"><div class="cardhead"><h2>By exercise</h2>' +
+        '<select id="chart-ex" data-change="chart-ex" data-pid="' + pid + '">' + keys.map(function (k) {
+          return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + esc(exName(k)) + '</option>';
+        }).join('') + '</select></div>' +
+        '<p class="sub">' + (body ? 'Reps per set' : 'Strength score: estimated one-rep max, in lb, from your top set') +
+        (pts.length > 1 ? ' · ' + (delta >= 0 ? 'up ' : 'down ') + Math.abs(delta) + '% since ' + pts[0].label : '') + '</p>' +
+        lineChart(pts) + '<ul class="recent">' + recent + '</ul></section>';
+    }
+    var weeks = E.weekly(done, pid, LIB, 12, today());
+    var recs = E.records(done, pid, LIB).slice(0, 8).map(function (r) {
+      return '<li><span>' + esc(exName(r.ex)) + '</span><b>' + esc(targetText(r.ex, r.w, r.reps)) + '</b><em>' + fmtDate(r.date) + '</em></li>';
+    }).join('');
+    var hist = done.slice().sort(function (a, b) { return b.start - a.start; }).slice(0, 12).map(function (s) {
+      var lines = s.items.map(function (it) {
+        var tops = it.sets.filter(function (x) { return x.k === 'top'; });
+        var res = tops.map(function (x) {
+          if (x.st === 'done') return esc(targetText(it.ex, x.w, x.got)) + (x.easy ? ' (easy)' : '');
+          if (x.st === 'fail') return esc(targetText(it.ex, x.w, x.got)) + ' (missed ' + x.r + ')';
+          return 'skipped';
+        }).join(', ');
+        return '<li><span>' + esc(exName(it.ex)) + '</span><b>' + res + '</b></li>';
+      }).join('');
+      return '<details><summary><span>' + fmtDate(s.date) + '</span><b>' + E.WK_NAMES[s.wk] + '</b><em>' +
+        Math.max(1, Math.round((s.end - s.start) / 60000)) + ' min</em></summary><ul class="recent">' + lines + '</ul></details>';
+    }).join('');
+    return '<div class="' + colorClass(p) + '">' + head + tiles + chart +
+      '<section class="card"><h2>Last 12 weeks</h2>' + calendar(pid, 12) + '</section>' +
+      '<section class="card"><h2>Hard sets per week</h2><p class="sub">Lead-in and top sets. Light sets are not counted.</p>' + barChart(weeks) + '</section>' +
+      '<section class="card"><h2>Best sets</h2><ul class="recent">' + recs + '</ul></section>' +
+      reviewCard(pid) +
+      '<section class="card"><h2>Recent workouts</h2>' + hist + '</section></div>';
+  }
+
+  function reviewCard(pid) {
+    var p = prof(pid), rv = ui.review[pid], saved = p.review, body = '';
+    if (!sample && !saved) return '';
+    if (rv && rv.state === 'thinking') body = '<p class="sub">Claude is reading your log. This can take up to a minute.</p>';
+    else if (rv && rv.state === 'error') body = '<p class="sub warnText">' + esc(rv.msg) + '</p>';
+    var show = (rv && rv.state === 'done') ? rv : saved;
+    if (show && show.summary) {
+      var sugs = (show.suggestions || []).map(function (g, i) {
+        var what;
+        if (g.type === 'swap') what = 'Swap ' + esc(exName(g.from)) + ' for ' + esc(exName(g.to)) + ' in ' + E.WK_NAMES[g.workout];
+        else if (g.type === 'weight') what = esc(exName(g.ex)) + ': set the next target to ' + esc(targetText(g.ex, g.w, g.r));
+        else what = esc(exName(g.ex)) + ': change the rep range to ' + g.lo + ' to ' + g.hi;
+        return '<li><b>' + what + '</b><span>' + esc(g.why || '') + '</span>' +
+          (g.applied ? '<em>Applied</em>' : '<button class="btn small" data-act="apply-sug" data-pid="' + pid + '" data-i="' + i + '">Apply</button>') + '</li>';
+      }).join('');
+      body += '<p class="reviewtext">' + esc(show.summary) + '</p>' + (sugs ? '<ul class="sugs">' + sugs + '</ul>' : '') +
+        '<p class="sub">Written by Claude on ' + fmtDate(show.date) + ' from your log. Check its advice against how you feel.</p>';
+    }
+    var btn = sample && !(rv && rv.state === 'thinking') ?
+      '<button class="btn" data-act="review" data-pid="' + pid + '">' + (show ? 'Ask for a new review' : 'Ask Claude to review my training') + '</button>' : '';
+    return '<section class="card"><h2>Review</h2>' + body + btn + '</section>';
+  }
+
+  function stepRow(label, val, act, pid, extra) {
+    return '<div class="setrow"><span>' + label + '</span><div class="stepper sm">' +
+      '<button class="btn round" data-act="' + act + '" data-dir="-1" data-pid="' + pid + '"' + (extra || '') + ' aria-label="Less">−</button>' +
+      '<span class="val">' + val + '</span>' +
+      '<button class="btn round" data-act="' + act + '" data-dir="1" data-pid="' + pid + '"' + (extra || '') + ' aria-label="More">+</button></div></div>';
+  }
+
+  function settingsView(pid) {
+    var p = prof(pid), S = p.settings, q = equip();
+    function seg(val, label) {
+      return '<button class="segb' + (S.lightOn === val ? ' on' : '') + '" data-act="set-lighton" data-val="' + val + '" data-pid="' + pid + '">' + label + '</button>';
+    }
+    var program = E.ORDER.map(function (wk) {
+      return '<h3>' + E.WK_NAMES[wk] + '</h3><ol class="exlist compact">' + p.program[wk].map(function (key, i) {
+        var st = E.exState(p, key, LIB);
+        return '<li><button class="exrow" data-act="ex-sheet" data-pid="' + pid + '" data-wk="' + wk + '" data-i="' + i + '">' +
+          '<span class="n">' + (i + 1) + '</span><span class="what"><b>' + esc(exName(key)) + '</b><span class="sub">' + st.lo + ' to ' + st.hi + ' reps</span></span>' +
+          '<span class="target">' + (st.w === null ? 'Not started' : esc(targetText(key, st.w, st.r))) + '</span></button></li>';
+      }).join('') + '</ol>';
+    }).join('');
+    return '<div class="' + colorClass(p) + '">' +
+      '<header class="top"><button class="back" data-act="open-plan" data-pid="' + pid + '">‹ ' + esc(p.name) + '</button><h1>Settings</h1><span></span></header>' +
+      '<section class="card"><h2>Warm-up sets</h2>' +
+      '<div class="setrow col"><span>Light sets before</span><div class="seg">' + seg('all', 'Every exercise') + seg('first', 'First exercise only') + seg('none', 'None') + '</div></div>' +
+      stepRow('Number of light sets', S.lightSets, 'set-num', pid, ' data-key="lightSets" data-min="0" data-max="3" data-step="1"') +
+      stepRow('Reps in a light set', S.lightReps, 'set-num', pid, ' data-key="lightReps" data-min="5" data-max="25" data-step="1"') +
+      '<div class="setrow"><span>Lead-in set, one step below the top weight</span><button class="btn small" data-act="set-lead" data-pid="' + pid + '">' + (S.leadIn ? 'On' : 'Off') + '</button></div>' +
+      stepRow('Extra top sets', S.extraTop, 'set-num', pid, ' data-key="extraTop" data-min="0" data-max="2" data-step="1"') +
+      '</section>' +
+      '<section class="card"><h2>Rest timer</h2>' +
+      stepRow('First exercise, seconds', S.restMain, 'set-num', pid, ' data-key="restMain" data-min="0" data-max="300" data-step="15"') +
+      stepRow('Other exercises, seconds', S.restAcc, 'set-num', pid, ' data-key="restAcc" data-min="0" data-max="300" data-step="15"') +
+      '<p class="sub">Set to 0 to hide the timer.</p></section>' +
+      '<section class="card"><h2>Time away</h2>' +
+      stepRow('Repeat the last target after this many days', S.holdDays, 'set-num', pid, ' data-key="holdDays" data-min="7" data-max="60" data-step="1"') +
+      stepRow('Lower weights about 10% after this many days', S.dropDays, 'set-num', pid, ' data-key="dropDays" data-min="14" data-max="120" data-step="1"') +
+      '</section>' +
+      '<section class="card"><h2>' + esc(p.name) + '\'s exercises</h2><p class="sub">Tap one to change its weight, rep range, or swap it.</p>' + program + '</section>' +
+      '<section class="card"><h2>Equipment</h2><p class="sub">Shared by everyone. Weights in pounds, separated by commas.</p>' +
+      '<label class="field"><span>Bar weight</span><input id="eq-bar" inputmode="decimal" value="' + q.bar + '"></label>' +
+      '<label class="field"><span>Smallest jump on the bar (both sides together)</span><input id="eq-barstep" inputmode="decimal" value="' + q.barStep + '"></label>' +
+      '<label class="field"><span>Plate sizes you own</span><input id="eq-plates" value="' + q.plates.join(', ') + '"></label>' +
+      '<label class="field"><span>Dumbbell pairs</span><input id="eq-pairs" value="' + q.dbPairs.join(', ') + '"></label>' +
+      '<label class="field"><span>Single dumbbells with no pair</span><input id="eq-singles" value="' + (q.dbSingles || []).join(', ') + '"></label>' +
+      '<label class="field"><span>Smallest jump on plate-loaded machines</span><input id="eq-mach" inputmode="decimal" value="' + q.machStep + '"></label>' +
+      '<button class="btn" data-act="equip-save">Save equipment</button></section>' +
+      '<section class="card"><h2>Data</h2><p class="sub">' +
+      (Store.mode === 'online' ? 'Saved in your Claude account, so any device signed in to it shows the same data.' : 'Saved in this browser only.') + '</p>' +
+      '<button class="btn danger" data-act="reset" data-pid="' + pid + '">' + (ui.resetArm[pid] ? 'Tap again to erase ' + esc(p.name) + '\'s history and weights' : 'Erase ' + esc(p.name) + '\'s history and weights') + '</button></section></div>';
+  }
+
+  // ---------- sheets ----------
+  function howtoBody(key) {
+    var ex = LIB[key];
+    return '<h2>' + esc(ex.name) + '</h2><p class="sub">' + GROUPS[ex.group] + '</p>' +
+      '<div class="photos"><figure><img src="img/' + key + '_0.jpg" alt="' + esc(ex.name) + ', start position"><figcaption>Start</figcaption></figure>' +
+      '<figure><img src="img/' + key + '_1.jpg" alt="' + esc(ex.name) + ', end position"><figcaption>Finish</figcaption></figure></div>' +
+      '<h3>Key points</h3><ul class="cues">' + ex.cues.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
+      '<details class="steps"><summary>Step by step</summary><ol>' + ex.steps.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ol></details>' +
+      '<p class="sub credit">Photos and steps from Free Exercise DB, a public-domain collection.</p>';
+  }
+
+  function sheetHtml() {
+    if (!sheet) return '';
+    var body = '', pid = sheet.pid, p = pid && prof(pid);
+    if (sheet.type === 'howto') body = howtoBody(sheet.key);
+    else if (sheet.type === 'finish') {
+      var s = activeSession(pid), pr = s ? E.progress(s) : { total: 0, done: 0 };
+      var left = pr.total - pr.done;
+      body = '<h2>Finish now?</h2><p>' + (pr.done ? (left === 1 ? '1 set is left. It will count as skipped' : left + ' sets are left. They will count as skipped') + ', and what you did is saved.' :
+        'Nothing is logged yet, so this workout will not be saved.') + '</p>' +
+        '<div class="row2"><button class="btn" data-act="sheet-close">Keep going</button>' +
+        '<button class="btn primary" data-act="finish-yes" data-pid="' + pid + '">Finish workout</button></div>';
+    } else if (sheet.type === 'wk') {
+      body = '<h2>Change workout</h2><p class="sub">The rotation continues from the one you pick.</p><div class="choices">' + E.ORDER.map(function (wk, i) {
+        return '<button class="btn' + (E.nextWorkout(p) === wk ? ' primary' : '') + '" data-act="wk-set" data-pid="' + pid + '" data-i="' + i + '">' + E.WK_NAMES[wk] + '</button>';
+      }).join('') + '</div>';
+    } else if (sheet.type === 'adj') {
+      var s2 = activeSession(pid), c = s2 && E.cursor(s2);
+      if (s2 && c) {
+        var it = s2.items[c.i], ex = LIB[it.ex];
+        body = '<h2>' + esc(ex.name) + '</h2><p class="sub">Changes the top set for today. The lighter sets follow it.</p>' +
+          (ex.eq === 'body' ? '' : stepRow('Top weight', esc(weightText(ex.eq, it.target.w)), 'adj-w', pid) +
+            (ex.eq === 'bar' || ex.eq === 'mach' ? '<div class="jumps">' + jumpBtn(ex.eq, -4, pid) + jumpBtn(ex.eq, 4, pid) + '</div>' : '')) +
+          stepRow('Reps', it.target.r, 'adj-r', pid) +
+          '<button class="btn primary" data-act="sheet-close">Done</button>';
+      }
+    } else if (sheet.type === 'ex') {
+      var key = p.program[sheet.wk][sheet.i], ex2 = LIB[key], st = E.exState(p, key, LIB);
+      var alts = E.alternatives(p, sheet.wk, key, LIB);
+      var extra = ' data-wk="' + sheet.wk + '" data-i="' + sheet.i + '"';
+      body = '<h2>' + esc(ex2.name) + '</h2><p class="sub">' + GROUPS[ex2.group] + ' · ' + E.WK_NAMES[sheet.wk] + '</p>' +
+        '<button class="btn" data-act="howto" data-key="' + key + '">How to do it</button>' +
+        '<h3>Next target</h3>' +
+        (ex2.eq === 'body' ? '' : stepRow('Weight', st.w === null ? 'Not set' : esc(weightText(ex2.eq, st.w)), 'ex-w', pid, extra)) +
+        stepRow('Reps', st.r, 'ex-r', pid, extra) +
+        '<h3>Rep range</h3>' +
+        stepRow('Start at', st.lo, 'ex-lo', pid, extra) + stepRow('Add weight after', st.hi, 'ex-hi', pid, extra) +
+        (st.flag === 'stalled' && ex2.eq !== 'body' ? '<button class="btn" data-act="ex-lower" data-pid="' + pid + '"' + extra + '>Lower the weight about 10%</button>' : '') +
+        '<h3>Swap for another ' + GROUPS[ex2.group].toLowerCase() + ' exercise</h3>' +
+        (alts.length ? '<div class="choices">' + alts.map(function (k) {
+          return '<button class="btn" data-act="swap" data-pid="' + pid + '"' + extra + ' data-key="' + k + '">' + esc(exName(k)) + '</button>';
+        }).join('') + '</div>' : '<p class="sub">No other exercises for this muscle group.</p>');
+    }
+    return '<div class="scrim" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true">' +
+      '<button class="close" data-act="sheet-close" aria-label="Close">×</button>' + body + '</div>';
+  }
+
+  // ---------- render ----------
+  function isTyping() {
+    var a = document.activeElement;
+    return a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA');
+  }
+  function render() {
+    pendingRender = false;
+    var html, pid = view.pid;
+    if (view.name !== 'home' && view.name !== 'workout' && !prof(pid)) view = { name: 'home' };
+    if (view.name === 'home') html = homeView();
+    else if (view.name === 'plan') html = planView(pid);
+    else if (view.name === 'workout') html = workoutView();
+    else if (view.name === 'progress') html = progressView(pid);
+    else if (view.name === 'settings') html = settingsView(pid);
+    var key = view.name + ':' + (view.pid || '');
+    var y = key === lastViewKey ? (window.pageYOffset || 0) : 0;
+    lastViewKey = key;
+    root.className = 'v-' + view.name;
+    root.innerHTML = html + sheetHtml();
+    window.scrollTo(0, y);
+    tick();
+  }
+  function storeChanged() {
+    if (Store.confirmed) closeStale();
+    if (isTyping()) { pendingRender = true; return; }
+    render();
+  }
+
+  function tick() {
+    var now = Date.now();
+    Object.keys(rest).forEach(function (pid) {
+      var el = root.querySelector('[data-rest="' + pid + '"]');
+      if (!el) return;
+      var left = Math.ceil((rest[pid].until - now) / 1000);
+      el.hidden = false;
+      if (left > 0) {
+        el.className = 'rest';
+        el.textContent = 'Rest ' + Math.floor(left / 60) + ':' + (left % 60 < 10 ? '0' : '') + (left % 60);
+      } else if (left > -600) {
+        el.className = 'rest over';
+        el.textContent = 'Rest over';
+      } else { delete rest[pid]; el.hidden = true; }
+    });
+  }
+
+  // ---------- actions ----------
+  function ensureEx(p, key) {
+    if (!p.ex[key]) p.ex[key] = clone(E.exState(p, key, LIB));
+    return p.ex[key];
+  }
+  function parseList(v) {
+    return String(v).split(/[,\s]+/).map(Number).filter(function (n) { return n > 0 && isFinite(n); });
+  }
+  function keepAwake() {
+    try { if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) { /* not supported */ }
+  }
+
+  function logCurrent(pid, status, got, easy) {
+    var s = clone(activeSession(pid));
+    var c = E.cursor(s);
+    if (!c) return;
+    var p = prof(pid);
+    E.logSet(s, c.i, c.j, status, got, easy, Date.now());
+    Store.saveSession(s);
+    delete ui.missed[pid];
+    var next = E.cursor(s);
+    if (!next) { finishSession(pid, s); return; }
+    if (status === 'done' || status === 'fail') {
+      var kind = s.items[c.i].sets[c.j].k;
+      var secs = c.i === 0 ? p.settings.restMain : p.settings.restAcc;
+      if (kind === 'light') secs = Math.min(secs, 45);
+      if (secs > 0) rest[pid] = { until: Date.now() + secs * 1000 }; else delete rest[pid];
+    } else delete rest[pid];
+  }
+
+  function askReview(pid) {
+    var p = prof(pid), q = equip();
+    var dig = E.reviewDigest(p, doneSessions(pid), LIB, today(), 16);
+    var keys = Object.keys(LIB).map(function (k) { return k + ' = ' + LIB[k].name + ' [' + LIB[k].group + ', ' + LIB[k].eq + ']'; });
+    var prompt = [
+      'You are reviewing the training log of ' + p.name + ', who lifts at home in a garage, alone, with a light-duty rack.',
+      'Method: double progression on an upper/lower split (Upper A, Lower A, Upper B, Lower B). Each exercise has a rep range.',
+      'After a completed top set the target goes up by one rep (two if marked easy). At the top of the range the weight goes up one step and reps return to the bottom. A missed set repeats the same target.',
+      'Equipment: barbell ' + q.bar + ' lb with ' + q.barStep + ' lb jumps; dumbbell pairs ' + q.dbPairs.join(', ') + ' lb; single dumbbells ' + (q.dbSingles || []).join(', ') + ' lb; plate-loaded dip machine and leg attachment with ' + q.machStep + ' lb jumps. Equipment codes: bar, db (pair, weight per hand), db1 (one dumbbell), mach, body.',
+      'Today is ' + today() + '.',
+      '', 'CURRENT PROGRAM AND NEXT TARGETS:', dig.targets.join('\n'),
+      '', 'RECENT SESSIONS (top sets, weight x reps), oldest first:', dig.history.length ? dig.history.join('\n') : 'None yet.',
+      '', 'EXERCISES AVAILABLE FOR SWAPS (key = name [muscle group, equipment]):', keys.join('\n'),
+      '', 'Write a short, practical review. Be conservative about safety and do not suggest equipment they lack.',
+      'Reply with only a JSON object in this exact shape:',
+      '{"summary": "3 to 5 plain sentences addressed to the lifter as you", "suggestions": [',
+      ' {"type": "swap", "workout": "UA", "from": "curl", "to": "hammer", "why": "one sentence"},',
+      ' {"type": "weight", "ex": "bench", "w": 130, "r": 8, "why": "one sentence"},',
+      ' {"type": "range", "ex": "bench", "lo": 6, "hi": 10, "why": "one sentence"}]}',
+      'Use at most 4 suggestions, and an empty list if nothing needs changing. Use only exercise keys from the lists above. A swap must stay within the same muscle group. Weights must be ones the equipment can make.'
+    ].join('\n');
+    ui.review[pid] = { state: 'thinking' };
+    render();
+    sample.json(prompt, { cache: false }).then(function (data) {
+      var out = { state: 'done', date: today(), summary: '', suggestions: [] };
+      if (data && typeof data.summary === 'string') out.summary = data.summary.slice(0, 1200);
+      var cur = prof(pid);
+      (data && Array.isArray(data.suggestions) ? data.suggestions : []).slice(0, 4).forEach(function (g) {
+        if (!g || typeof g !== 'object') return;
+        var why = typeof g.why === 'string' ? g.why.slice(0, 240) : '';
+        if (g.type === 'swap' && cur.program[g.workout] && cur.program[g.workout].indexOf(g.from) >= 0 && LIB[g.to] &&
+          LIB[g.to].group === LIB[g.from].group && cur.program[g.workout].indexOf(g.to) < 0) {
+          out.suggestions.push({ type: 'swap', workout: g.workout, from: g.from, to: g.to, why: why });
+        } else if (g.type === 'weight' && LIB[g.ex] && isFinite(g.w) && isFinite(g.r) && g.w >= 0 && g.w <= 600 && g.r >= 1 && g.r <= 40) {
+          out.suggestions.push({ type: 'weight', ex: g.ex, w: Number(g.w), r: Math.round(g.r), why: why });
+        } else if (g.type === 'range' && LIB[g.ex] && isFinite(g.lo) && isFinite(g.hi) && g.lo >= 1 && g.hi > g.lo && g.hi <= 40) {
+          out.suggestions.push({ type: 'range', ex: g.ex, lo: Math.round(g.lo), hi: Math.round(g.hi), why: why });
+        }
+      });
+      if (!out.summary) { ui.review[pid] = { state: 'error', msg: 'Claude\'s answer could not be read. Try again.' }; render(); return; }
+      ui.review[pid] = out;
+      var p2 = clone(prof(pid));
+      p2.review = { date: out.date, summary: out.summary, suggestions: out.suggestions };
+      Store.saveProfile(p2);
+    }, function (e) {
+      var code = e && e.code, msg = 'The review did not finish. Try again later.';
+      if (code === 'not_granted' || code === 'sampling_disabled') msg = 'Claude is not allowed on this page for this account, so reviews are off.';
+      else if (code === 'rate_limited') msg = 'You have reached a Claude usage limit. Try again later.';
+      else if (code === 'session_expired') msg = 'Sign in to Claude again, then retry.';
+      else if (code === 'cancelled') msg = '';
+      ui.review[pid] = { state: 'error', msg: msg };
+      render();
+    });
+  }
+
+  function applySuggestion(pid, i) {
+    var p = clone(prof(pid));
+    var src = (ui.review[pid] && ui.review[pid].state === 'done') ? ui.review[pid] : p.review;
+    var g = src && src.suggestions && src.suggestions[i];
+    if (!g || g.applied) return;
+    if (g.type === 'swap') {
+      var idx = p.program[g.workout].indexOf(g.from);
+      if (idx >= 0) p.program[g.workout][idx] = g.to;
+    } else if (g.type === 'weight') {
+      var st = ensureEx(p, g.ex); st.w = g.w; st.r = Math.max(st.lo, Math.min(st.hi, g.r)); st.fails = 0; st.flag = null;
+    } else if (g.type === 'range') {
+      var st2 = ensureEx(p, g.ex); st2.lo = g.lo; st2.hi = g.hi; st2.r = Math.max(g.lo, Math.min(g.hi, st2.r));
+    }
+    g.applied = true;
+    if (p.review && p.review.suggestions && p.review.suggestions[i]) p.review.suggestions[i].applied = true;
+    Store.saveProfile(p);
+  }
+
+  function act(name, d) {
+    var pid = d.pid, p = pid && prof(pid), s, c, st, q = equip(), dir = Number(d.dir || 0), key;
+    switch (name) {
+      case 'setup':
+        if (profiles().length) break;
+        var names = ['name1', 'name2'].map(function (id) {
+          var el = document.getElementById(id);
+          return el ? String(el.value).replace(/^\s+|\s+$/g, '').slice(0, 20) : '';
+        }).filter(function (nm) { return nm; });
+        if (!names.length) break;
+        names.forEach(function (nm, i) {
+          var np = E.newProfile('p' + (i + 1), nm, DEFAULT_PROGRAM);
+          np.ord = i; np.color = i ? 'teal' : 'blue';
+          Store.saveProfile(np);
+        });
+        if (!Store.data.equip) Store.saveEquip(E.defaultEquipment());
+        break;
+      case 'nav': view = { name: d.view, pid: pid || null }; sheet = null; break;
+      case 'open-plan':
+        sheet = null;
+        view = activeSession(pid) ? { name: 'workout', pid: pid } : { name: 'plan', pid: pid };
+        break;
+      case 'continue': view = { name: 'workout', pid: pid }; keepAwake(); break;
+      case 'tab': view.pid = pid; break;
+      case 'gap-toggle': ui.gapOff[pid] = !ui.gapOff[pid]; break;
+      case 'start':
+        s = E.planSession(p, E.nextWorkout(p), today(), q, LIB, { ignoreGap: !!ui.gapOff[pid], now: Date.now(), id: 's' + Date.now() + pid });
+        delete ui.gapOff[pid]; delete ui.summary[pid];
+        Store.saveSession(s);
+        view = { name: 'workout', pid: pid };
+        keepAwake();
+        break;
+      case 'log':
+        if (ui.lastTap[pid] && Date.now() - ui.lastTap[pid] < 600) return;   // guards against a double tap
+        ui.lastTap[pid] = Date.now();
+        if (d.kind === 'done') logCurrent(pid, 'done', null, 0);
+        else if (d.kind === 'easy') logCurrent(pid, 'done', null, 1);
+        else if (d.kind === 'veasy') logCurrent(pid, 'done', null, 2);
+        else if (d.kind === 'skip') logCurrent(pid, 'skip');
+        break;
+      case 'miss-open':
+        s = activeSession(pid); c = E.cursor(s);
+        ui.missed[pid] = { n: Math.max(0, s.items[c.i].sets[c.j].r - 1) };
+        break;
+      case 'miss-step':
+        s = activeSession(pid); c = E.cursor(s);
+        ui.missed[pid].n = Math.max(0, Math.min(s.items[c.i].sets[c.j].r - 1, ui.missed[pid].n + dir));
+        break;
+      case 'miss-cancel': delete ui.missed[pid]; break;
+      case 'miss-save': logCurrent(pid, 'fail', ui.missed[pid].n); break;
+      case 'skip-ex':
+        s = clone(activeSession(pid)); c = E.cursor(s);
+        E.skipExercise(s, c.i, Date.now());
+        Store.saveSession(s); delete rest[pid]; delete ui.missed[pid];
+        if (!E.cursor(s)) finishSession(pid, s);
+        break;
+      case 'undo':
+        s = clone(activeSession(pid));
+        var lastSet = null;
+        s.items.forEach(function (it) { it.sets.forEach(function (x) { if (x.st !== null && (!lastSet || x.t >= lastSet.t)) lastSet = x; }); });
+        if (lastSet) { lastSet.st = null; lastSet.got = null; lastSet.easy = 0; lastSet.t = null; Store.saveSession(s); delete rest[pid]; }
+        break;
+      case 'finish-ask': sheet = { type: 'finish', pid: pid }; break;
+      case 'finish-yes':
+        sheet = null; s = activeSession(pid);
+        if (s && !finishSession(pid, s)) view = { name: 'home' };
+        break;
+      case 'summary-close':
+        delete ui.summary[pid];
+        if (!activePids().length) view = { name: 'home' };
+        break;
+      case 'howto': sheet = { type: 'howto', key: d.key, back: sheet && sheet.type === 'ex' ? sheet : null }; break;
+      case 'sheet-close': sheet = sheet && sheet.back ? sheet.back : null; break;
+      case 'wk-sheet': sheet = { type: 'wk', pid: pid }; break;
+      case 'wk-set':
+        p = clone(p); p.rot = Number(d.i); Store.saveProfile(p); sheet = null;
+        break;
+      case 'adj-sheet': sheet = { type: 'adj', pid: pid }; break;
+      case 'adj-w':
+      case 'adj-r':
+        s = clone(activeSession(pid)); c = E.cursor(s);
+        var it = s.items[c.i], eq = LIB[it.ex].eq, w = it.target.w, r = it.target.r;
+        if (name === 'adj-w') {
+          var nw = w, k, t2;
+          for (k = 0; k < Math.abs(dir); k++) {
+            t2 = dir > 0 ? E.stepUp(nw, eq, q) : E.stepDown(nw, eq, q);
+            if (t2 === null || t2 === nw) break;
+            nw = t2;
+          }
+          if (nw === w) break;
+          w = nw;
+        } else r = Math.max(1, Math.min(50, r + dir));
+        var keepStart = it.needsStart;
+        E.retarget(s, c.i, w, r, p, q, LIB);
+        s.items[c.i].needsStart = keepStart;
+        Store.saveSession(s);
+        break;
+      case 'ex-sheet': sheet = { type: 'ex', pid: pid, wk: d.wk, i: Number(d.i) }; break;
+      case 'ex-w': case 'ex-r': case 'ex-lo': case 'ex-hi': case 'ex-lower':
+        p = clone(p); key = p.program[d.wk][Number(d.i)]; st = ensureEx(p, key);
+        var eq2 = LIB[key].eq;
+        if (name === 'ex-w') {
+          if (st.w === null) st.w = E.startWeight(key, LIB, q);
+          else { var x = dir > 0 ? E.stepUp(st.w, eq2, q) : E.stepDown(st.w, eq2, q); if (x !== null) st.w = x; }
+          st.flag = null; st.fails = 0;
+        } else if (name === 'ex-r') st.r = Math.max(st.lo, Math.min(st.hi, st.r + dir));
+        else if (name === 'ex-lo') { st.lo = Math.max(1, Math.min(st.hi - 1, st.lo + dir)); st.r = Math.max(st.lo, st.r); }
+        else if (name === 'ex-hi') { st.hi = Math.max(st.lo + 1, Math.min(40, st.hi + dir)); st.r = Math.min(st.hi, st.r); }
+        else if (name === 'ex-lower' && st.w !== null) { st.w = E.dropWeight(st.w, eq2, q); st.fails = 0; st.flag = null; }
+        Store.saveProfile(p);
+        break;
+      case 'swap':
+        p = clone(p); E.swapExercise(p, d.wk, Number(d.i), d.key); Store.saveProfile(p);
+        break;
+      case 'set-lighton': p = clone(p); p.settings.lightOn = d.val; Store.saveProfile(p); break;
+      case 'set-lead': p = clone(p); p.settings.leadIn = !p.settings.leadIn; Store.saveProfile(p); break;
+      case 'set-num':
+        p = clone(p);
+        p.settings[d.key] = Math.max(Number(d.min), Math.min(Number(d.max), p.settings[d.key] + dir * Number(d.step)));
+        Store.saveProfile(p);
+        break;
+      case 'equip-save':
+        var nq = clone(q);
+        function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+        var bar = parseList(val('eq-bar'))[0], bs = parseList(val('eq-barstep'))[0], ms = parseList(val('eq-mach'))[0];
+        var plates = parseList(val('eq-plates')), pairs = parseList(val('eq-pairs'));
+        if (bar) nq.bar = bar;
+        if (bs) nq.barStep = bs;
+        if (ms) nq.machStep = ms;
+        if (plates.length) nq.plates = plates.sort(function (a, b) { return b - a; });
+        if (pairs.length) nq.dbPairs = pairs.sort(function (a, b) { return a - b; });
+        nq.dbSingles = parseList(val('eq-singles')).sort(function (a, b) { return a - b; });
+        Store.saveEquip(nq);
+        break;
+      case 'reset':
+        if (!ui.resetArm[pid]) { ui.resetArm[pid] = true; break; }
+        delete ui.resetArm[pid];
+        var fresh = E.newProfile(p.id, p.name, DEFAULT_PROGRAM);
+        fresh.ord = p.ord; fresh.color = p.color; fresh.rev = p.rev; fresh.settings = p.settings;
+        fresh.resetAt = Date.now();
+        Store.saveProfile(fresh);
+        view = { name: 'home' };
+        break;
+      case 'review': if (sample) { askReview(pid); return; } break;
+      case 'apply-sug': applySuggestion(pid, Number(d.i)); break;
+    }
+    if (name !== 'reset') ui.resetArm = {};
+    render();
+  }
+
+  root.addEventListener('click', function (ev) {
+    var t = ev.target.closest ? ev.target.closest('[data-act]') : null;
+    if (!t || t.disabled) return;
+    act(t.getAttribute('data-act'), t.dataset);
+  });
+  root.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t && t.getAttribute('data-change') === 'chart-ex') {
+      ui.chartEx[t.dataset.pid] = t.value;
+      t.blur();
+      render();
+    }
+  });
+  root.addEventListener('focusout', function () {
+    setTimeout(function () { if (pendingRender && !isTyping()) render(); }, 50);
+  });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && sheet) { sheet = null; render(); } });
+  window.addEventListener('resize', function () { if (view.name === 'workout' && !isTyping()) render(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && view.name === 'workout') keepAwake(); });
+  setInterval(tick, 500);
+
+  Store.init(storeChanged);
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('sample').then(function (fn) { if (fn) { sample = fn; if (!isTyping()) render(); } }, function () {});
+  }
+})();
+</script>
+</body>
+</html>
