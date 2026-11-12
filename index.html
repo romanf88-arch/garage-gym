@@ -277,6 +277,8 @@ details.steps li { margin-bottom: 0.5rem; }
   .calcol { display: block; }
   .calcol i { margin-bottom: 4px; }
 }
+
+.planlen { margin: -0.3rem 0 0.8rem; font-size: 1rem; color: var(--muted, inherit); }
 </style>
 <div id="app"><div class="empty"><p>Loading.</p></div></div>
 <script>
@@ -1136,12 +1138,31 @@ var Engine = (function () {
       lightReps: 15,
       lightOn: 'all',    // 'all' exercises, 'first' exercise only, or 'none'
       leadIn: true,      // one set a step below the top weight
-      extraTop: 0,       // extra top sets after the first
+      topSets: 5,        // sets at the top weight
       restMain: 150,     // seconds, first exercise of the day
       restAcc: 75,       // seconds, the rest
       holdDays: 14,      // this long away: repeat the last completed target
       dropDays: 28       // this long away: lower the weight about 10%
     };
+  };
+
+  // Number of sets at the top weight. Profiles saved before 2026-11-12 have no topSets; they had
+  // "extraTop" (extra sets after the first), which was 0 unless changed, and those get the default of 5.
+  E.topCount = function (settings) {
+    if (typeof settings.topSets === 'number') return settings.topSets;
+    return settings.extraTop ? 1 + settings.extraTop : 5;
+  };
+
+  // Rough length of a session in minutes, to the nearest 5: about 40 seconds a set, the rest
+  // timers, and a minute to change exercise.
+  E.estimateMinutes = function (session, settings) {
+    var secs = 0;
+    session.items.forEach(function (item, i) {
+      var rest = i === 0 ? settings.restMain : settings.restAcc;
+      item.sets.forEach(function (s) { secs += 40 + (s.k === 'light' ? Math.min(rest, 45) : rest); });
+      secs += 60;
+    });
+    return Math.round(secs / 300) * 5;
   };
 
   E.newProfile = function (id, name, program) {
@@ -1268,8 +1289,9 @@ var Engine = (function () {
   E.buildSets = function (key, w, r, index, settings, equip, lib) {
     var ex = lib[key], sets = [], i;
     function mk(k, sw, sr) { return { k: k, w: sw, r: sr, st: null, got: null, easy: 0, t: null }; }
+    var nTop = E.topCount(settings);
     if (ex.eq === 'body') {
-      for (i = 0; i < 2 + (settings.extraTop || 0); i++) sets.push(mk('top', 0, r));
+      for (i = 0; i < Math.max(2, nTop); i++) sets.push(mk('top', 0, r));
       return sets;
     }
     var wantLight = settings.lightOn === 'all' || (settings.lightOn === 'first' && index === 0);
@@ -1287,7 +1309,7 @@ var Engine = (function () {
         sets.push(mk('lead', dw, r));
       }
     }
-    for (i = 0; i < 1 + (settings.extraTop || 0); i++) sets.push(mk('top', w, r));
+    for (i = 0; i < nTop; i++) sets.push(mk('top', w, r));
     return sets;
   };
 
@@ -1413,8 +1435,10 @@ var Engine = (function () {
         change.kind = 'repeat';
         if (st.fails >= 3) { st.flag = 'stalled'; change.kind = 'stalled'; }
       } else if (tops.every(function (s) { return s.st === 'done'; })) {
+        // Only sets at today's final weight say how hard the target was. A set marked easy before
+        // the weight was raised partway through must not raise it a second time.
         var easy = 0;
-        tops.forEach(function (s) { if (s.easy > easy) easy = s.easy; });
+        tops.forEach(function (s) { if ((ex.eq === 'body' || s.w === w) && s.easy > easy) easy = s.easy; });
         st.pw = w; st.pr = r; st.fails = 0; st.flag = null;
         var up;
         if (ex.eq === 'body') {
@@ -1975,6 +1999,15 @@ var Store = (function () {
     return head + '<div class="people n' + ps.length + '">' + cards + '</div>';
   }
 
+  // "48 sets, about 1 hr 40 min". The number of sets at the top weight is in Settings.
+  function planLength(session, settings) {
+    var sets = 0;
+    session.items.forEach(function (it) { sets += it.sets.length; });
+    var mins = E.estimateMinutes(session, settings), h = Math.floor(mins / 60), m = mins % 60;
+    var time = h ? h + ' hr' + (m ? ' ' + m + ' min' : '') : m + ' min';
+    return sets + ' sets, about ' + time;
+  }
+
   function planView(pid) {
     var p = prof(pid), wk = E.nextWorkout(p);
     var prev = E.planSession(p, wk, today(), equip(), LIB, { ignoreGap: !!ui.gapOff[pid], now: 0, id: 'preview' });
@@ -1999,7 +2032,7 @@ var Store = (function () {
       var kinds = { light: 0, lead: 0, top: 0 };
       it.sets.forEach(function (s) { kinds[s.k]++; });
       var total = it.sets.length, setsText = total + (total === 1 ? ' set' : ' sets');
-      if (it.needsStart) setsText = 'Warm-up sets are added once you pick a weight';
+      if (it.needsStart) setsText = kinds.top + (kinds.top === 1 ? ' set' : ' sets') + ', plus warm-up sets once you pick a weight';
       else if (kinds.light || kinds.lead) {
         var parts = [];
         if (kinds.light) parts.push(kinds.light + ' light');
@@ -2017,6 +2050,7 @@ var Store = (function () {
       '<span class="toplinks"><button class="link" data-act="nav" data-view="progress" data-pid="' + pid + '">Progress</button>' +
       '<button class="link" data-act="nav" data-view="settings" data-pid="' + pid + '">Settings</button></span></header>' +
       '<div class="planhead"><h2>' + E.WK_NAMES[wk] + '</h2><button class="link" data-act="wk-sheet" data-pid="' + pid + '">Change workout</button></div>' +
+      '<p class="sub planlen">' + planLength(prev, p.settings) + '</p>' +
       notice + '<ol class="exlist">' + rows + '</ol>' +
       '<p class="hint">Tap an exercise to see how to do it, change its weight, or swap it.</p>' +
       '<div class="stickybar"><button class="btn primary big" data-act="start" data-pid="' + pid + '">Start workout</button></div></div>';
@@ -2255,12 +2289,12 @@ var Store = (function () {
     }).join('');
     return '<div class="' + colorClass(p) + '">' +
       '<header class="top"><button class="back" data-act="open-plan" data-pid="' + pid + '">‹ ' + esc(p.name) + '</button><h1>Settings</h1><span></span></header>' +
-      '<section class="card"><h2>Warm-up sets</h2>' +
+      '<section class="card"><h2>Sets</h2>' +
+      stepRow('Sets at the top weight', E.topCount(S), 'set-num', pid, ' data-key="topSets" data-min="1" data-max="8" data-step="1"') +
       '<div class="setrow col"><span>Light sets before</span><div class="seg">' + seg('all', 'Every exercise') + seg('first', 'First exercise only') + seg('none', 'None') + '</div></div>' +
       stepRow('Number of light sets', S.lightSets, 'set-num', pid, ' data-key="lightSets" data-min="0" data-max="3" data-step="1"') +
       stepRow('Reps in a light set', S.lightReps, 'set-num', pid, ' data-key="lightReps" data-min="5" data-max="25" data-step="1"') +
       '<div class="setrow"><span>Lead-in set, one step below the top weight</span><button class="btn small" data-act="set-lead" data-pid="' + pid + '">' + (S.leadIn ? 'On' : 'Off') + '</button></div>' +
-      stepRow('Extra top sets', S.extraTop, 'set-num', pid, ' data-key="extraTop" data-min="0" data-max="2" data-step="1"') +
       '</section>' +
       '<section class="card"><h2>Rest timer</h2>' +
       stepRow('First exercise, seconds', S.restMain, 'set-num', pid, ' data-key="restMain" data-min="0" data-max="300" data-step="15"') +
@@ -2314,7 +2348,7 @@ var Store = (function () {
       var s2 = activeSession(pid), c = s2 && E.cursor(s2);
       if (s2 && c) {
         var it = s2.items[c.i], ex = LIB[it.ex];
-        body = '<h2>' + esc(ex.name) + '</h2><p class="sub">Changes the top set for today. The lighter sets follow it.</p>' +
+        body = '<h2>' + esc(ex.name) + '</h2><p class="sub">Changes the top weight for today. The lighter sets follow it.</p>' +
           (ex.eq === 'body' ? '' : stepRow('Top weight', esc(weightText(ex.eq, it.target.w)), 'adj-w', pid) +
             (ex.eq === 'bar' || ex.eq === 'mach' ? '<div class="jumps">' + jumpBtn(ex.eq, -4, pid) + jumpBtn(ex.eq, 4, pid) + '</div>' : '')) +
           stepRow('Reps', it.target.r, 'adj-r', pid) +
@@ -2423,7 +2457,7 @@ var Store = (function () {
     var prompt = [
       'You are reviewing the training log of ' + p.name + ', who lifts at home in a garage, alone, with a light-duty rack.',
       'Method: double progression on an upper/lower split (Upper A, Lower A, Upper B, Lower B). Each exercise has a rep range.',
-      'After a completed top set the target goes up by one rep (two if marked easy). At the top of the range the weight goes up one step and reps return to the bottom. A missed set repeats the same target.',
+      'Each exercise has ' + E.topCount(p.settings) + ' sets at the top weight. When all of them are completed the target goes up by one rep (two if marked easy). At the top of the range the weight goes up one step and reps return to the bottom. A missed set repeats the same target.',
       'Equipment: barbell ' + q.bar + ' lb with ' + q.barStep + ' lb jumps; dumbbell pairs ' + q.dbPairs.join(', ') + ' lb; single dumbbells ' + (q.dbSingles || []).join(', ') + ' lb; plate-loaded dip machine and leg attachment with ' + q.machStep + ' lb jumps. Equipment codes: bar, db (pair, weight per hand), db1 (one dumbbell), mach, body.',
       'Today is ' + today() + '.',
       '', 'CURRENT PROGRAM AND NEXT TARGETS:', dig.targets.join('\n'),
@@ -2607,7 +2641,8 @@ var Store = (function () {
       case 'set-lead': p = clone(p); p.settings.leadIn = !p.settings.leadIn; Store.saveProfile(p); break;
       case 'set-num':
         p = clone(p);
-        p.settings[d.key] = Math.max(Number(d.min), Math.min(Number(d.max), p.settings[d.key] + dir * Number(d.step)));
+        var curNum = d.key === 'topSets' ? E.topCount(p.settings) : p.settings[d.key];
+        p.settings[d.key] = Math.max(Number(d.min), Math.min(Number(d.max), curNum + dir * Number(d.step)));
         Store.saveProfile(p);
         break;
       case 'equip-save':
