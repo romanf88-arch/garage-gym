@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon.png">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script>window.GYM_BUILD = "59854f4f20";</script>
+<script>window.GYM_BUILD = "8d73370136";</script>
 </head>
 <body>
 <title>Garage Gym</title>
@@ -286,6 +286,9 @@ details.steps li { margin-bottom: 0.5rem; }
 .rvnote .rvhead { font-weight: 700; margin-bottom: 0.3rem; }
 .rvnote .reviewtext { margin: 0 0 0.5rem; }
 .rvnote .sugs { margin-bottom: 0.5rem; }
+.alt { margin-top: 0.9rem; }
+.alt summary { color: var(--muted); padding: 0.3rem 0; }
+.alt { border-bottom: 0; }
 </style>
 <div id="app"><div class="empty"><p>Loading.</p></div></div>
 <script>
@@ -1874,6 +1877,88 @@ var Store = (function () {
   return S;
 })();
 
+// Setup code: gets the access token from the computer into this page without typing it.
+// tools/send_token.py scrambles the token with a 12-character code and puts the scrambled copy
+// in a public gist for a few minutes. src/sync.js finds that copy, and the functions here
+// unscramble it with the code typed on this device. No storage or network in this file, so the
+// functions can be tested in Node. tools/send_token.py does the same arithmetic in Python.
+//
+// The scrambling: key = SHA-256 of (salt + code), then hashed again together with the code
+// n times, which makes guessing codes slow. The token is combined (XOR) with a run of bytes
+// made by hashing key + ":" + block number. A short value made from the key ("check") tells a
+// wrong code from a right one.
+var SetupCode = (function () {
+  var S = {};
+  var K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  var HEX = '0123456789abcdef';
+
+  // SHA-256 of a string whose characters are all below 256. Returns 64 hex characters.
+  S.sha256 = function (text) {
+    var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    var len = text.length, total = (((len + 8) >> 6) + 1) * 16, words = [], w = [], i, j;
+    for (i = 0; i < total; i++) words[i] = 0;
+    for (i = 0; i < len; i++) words[i >> 2] |= (text.charCodeAt(i) & 0xff) << (24 - (i % 4) * 8);
+    words[len >> 2] |= 0x80 << (24 - (len % 4) * 8);
+    words[total - 1] = len * 8;
+    for (i = 0; i < total; i += 16) {
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (j = 0; j < 64; j++) {
+        if (j < 16) w[j] = words[i + j];
+        else {
+          var x = w[j - 15], y = w[j - 2];
+          var s0 = ((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3);
+          var s1 = ((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10);
+          w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+        }
+        var e1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        var t1 = (h + e1 + ((e & f) ^ (~e & g)) + K[j] + w[j]) | 0;
+        var a0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        var t2 = (a0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    var out = '';
+    for (i = 0; i < 8; i++) { for (j = 28; j >= 0; j -= 4) out += HEX.charAt((H[i] >>> j) & 15); }
+    return out;
+  };
+
+  // What was typed, without dashes or spaces, in capitals.
+  S.clean = function (typed) { return String(typed || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+
+  // The key is made in steps so the screen is not frozen while it is worked out:
+  // k = start(salt, code), then k = step(k, code, count) until n rounds are done.
+  S.start = function (salt, code) { return S.sha256(salt + code); };
+  S.step = function (key, code, count) {
+    for (var i = 0; i < count; i++) key = S.sha256(key + code);
+    return key;
+  };
+  S.check = function (key) { return S.sha256(key + ':check').slice(0, 16); };
+
+  // Turns the scrambled hex back into the token (or the token into scrambled hex: same sum).
+  S.unscramble = function (key, hex) {
+    var out = '', block = '', i, n = hex.length >> 1;
+    for (i = 0; i < n; i++) {
+      if (i % 32 === 0) block = S.sha256(key + ':' + (i / 32));
+      var k = parseInt(block.substr((i % 32) * 2, 2), 16);
+      out += String.fromCharCode(parseInt(hex.substr(i * 2, 2), 16) ^ k);
+    }
+    return out;
+  };
+
+  return S;
+})();
+if (typeof module !== 'undefined') { module.exports = SetupCode; }
+
 // Web copy only. Uploads a copy of the saved data to a private GitHub repository and reads the
 // changes a scheduled Claude review writes there (see review/REVIEW-TASK.md).
 //   data.json         written by this page, read by the review
@@ -2016,6 +2101,56 @@ var Sync = (function () {
     setState('off');
   };
   S.pushNow = function () { push(true); pull(); };
+
+  // Setup code (see src/setupcode.js and tools/send_token.py). Finds the scrambled token the
+  // computer put in a public gist, unscrambles it with the code typed here, and saves it.
+  // report(kind, text) is called with kind 'busy', 'error' or 'ok'.
+  function getOpen(path, done) {
+    var x = new XMLHttpRequest(), finished = false;
+    function finish(status, data) { if (!finished) { finished = true; done(status, data); } }
+    try {
+      x.open('GET', (st.api || 'https://api.github.com') + path + (path.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now(), true);
+      x.setRequestHeader('Accept', 'application/vnd.github+json');
+      x.onreadystatechange = function () {
+        if (x.readyState !== 4) return;
+        var data = null;
+        try { data = JSON.parse(x.responseText); } catch (e) { /* not JSON */ }
+        finish(x.status, data);
+      };
+      x.send(null);
+    } catch (e) { finish(0, null); }
+  }
+  S.useCode = function (typed, report) {
+    var code = SetupCode.clean(typed);
+    if (code.length !== 12) { report('error', 'The code has 12 letters and digits.'); return; }
+    var none = 'No setup data was found. Run the command on your computer first, then tap Connect again.';
+    report('busy', 'Looking for the setup data.');
+    getOpen('/users/' + REPO.split('/')[0] + '/gists?per_page=30', function (status, list) {
+      if (status !== 200 || !list || typeof list.length !== 'number') {
+        report('error', status === 0 ? 'No connection to GitHub. Check the Wi-Fi and try again.' : 'GitHub answered with error ' + status + '. Try again in a minute.');
+        return;
+      }
+      var found = null;
+      list.forEach(function (g) { if (!found && g && g.description === 'garage-gym-setup') found = g; });
+      if (!found) { report('error', none); return; }
+      getOpen('/gists/' + found.id, function (status2, gist) {
+        var file = gist && gist.files && gist.files['garage-gym-setup.json'], pack = null;
+        try { pack = JSON.parse(file.content); } catch (e) { /* missing or unreadable */ }
+        if (status2 !== 200 || !pack || !pack.salt || !pack.data || !(pack.n > 0) || pack.n > 500000) { report('error', none); return; }
+        report('busy', 'Unlocking. This takes a few seconds.');
+        var key = SetupCode.start(pack.salt, code), left = pack.n;
+        (function work() {
+          var count = Math.min(left, 500);
+          key = SetupCode.step(key, code, count);
+          left -= count;
+          if (left > 0) { setTimeout(work, 0); return; }
+          if (SetupCode.check(key) !== pack.check) { report('error', 'That code does not match. Check it and try again.'); return; }
+          S.setToken(SetupCode.unscramble(key, pack.data));
+          report('ok', '');
+        })();
+      });
+    });
+  };
   // For tests only: send requests to a stand-in for GitHub.
   S.testApi = function (base) { st.api = base || ''; save(); };
 
@@ -2548,8 +2683,12 @@ var Sync = (function () {
     var body;
     if (!Sync.has()) {
       body = '<p class="sub">The app can upload a copy of your data to your private GitHub repository. A scheduled Claude task on your computer reads it and changes your targets when your log calls for it. The changes show up on the first screen. The upload is also a backup of your history.</p>' +
-        '<label class="field"><span>Access token (paste or type it once)</span><input id="sync-token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." value="' + esc(ui.tokenDraft || '') + '"></label>' +
-        '<button class="btn" data-act="sync-save" data-pid="' + pid + '">Save token</button>';
+        '<label class="field"><span>Setup code from your computer (12 characters)</span><input id="sync-code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX" value="' + esc(ui.codeDraft || '') + '"></label>' +
+        '<button class="btn" data-act="sync-code" data-pid="' + pid + '"' + (ui.codeMsg && ui.codeMsg.busy ? ' disabled' : '') + '>Connect</button>' +
+        (ui.codeMsg ? '<p class="sub' + (ui.codeMsg.bad ? ' warnText' : '') + '">' + esc(ui.codeMsg.text) + '</p>' : '') +
+        '<details class="alt"' + (ui.tokenDraft ? ' open' : '') + '><summary>Paste the access token instead</summary>' +
+        '<label class="field"><span>Access token</span><input id="sync-token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." value="' + esc(ui.tokenDraft || '') + '"></label>' +
+        '<button class="btn" data-act="sync-save" data-pid="' + pid + '">Save token</button></details>';
     } else {
       var when = Sync.sentAt() ? 'Last upload: ' + fmtWhen(Sync.sentAt()) + '.' : 'Nothing uploaded yet.';
       body = (Sync.state === 'error' ? '<p class="sub warnText">' + esc(Sync.msg) + '</p><p class="sub">' + when + '</p>' :
@@ -3039,6 +3178,15 @@ var Sync = (function () {
         ui.tokenDraft = '';
         Sync.setToken(tok);
         break;
+      case 'sync-code':
+        var codeEl = document.getElementById('sync-code');
+        ui.codeDraft = codeEl ? codeEl.value : ui.codeDraft || '';
+        Sync.useCode(ui.codeDraft, function (kind, text) {
+          ui.codeMsg = kind === 'ok' ? null : { text: text, bad: kind === 'error', busy: kind === 'busy' };
+          if (kind === 'ok') ui.codeDraft = '';
+          if (view.name === 'settings' && !isTyping()) render();
+        });
+        break;
       case 'sync-now': Sync.pushNow(); break;
       case 'sync-remove': Sync.removeToken(); break;
       case 'review-ok':
@@ -3084,6 +3232,7 @@ var Sync = (function () {
     // A long token typed into Settings is kept if the screen is drawn again before it is saved.
     root.addEventListener('input', function (ev) {
       if (ev.target && ev.target.id === 'sync-token') ui.tokenDraft = ev.target.value;
+      if (ev.target && ev.target.id === 'sync-code') ui.codeDraft = ev.target.value;
     });
     setTimeout(function () { checkUpdate(false); Sync.tick(true); }, 5000);
     setInterval(function () { checkUpdate(false); Sync.tick(false); }, 60000);   // each asks its server at most once in ten minutes
