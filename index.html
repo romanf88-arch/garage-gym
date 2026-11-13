@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon.png">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<script>window.GYM_BUILD = "8e8ab26df1";</script>
+<script>window.GYM_BUILD = "59854f4f20";</script>
 </head>
 <body>
 <title>Garage Gym</title>
@@ -280,6 +280,12 @@ details.steps li { margin-bottom: 0.5rem; }
 }
 
 .planlen { margin: -0.3rem 0 0.8rem; font-size: 1rem; color: var(--muted, inherit); }
+
+/* Note from a scheduled Claude review, on a person's card on the first screen. */
+.rvnote { border: 1.5px solid var(--rule); border-radius: 10px; padding: 0.7rem 0.8rem; margin: 0.2rem 0 0.9rem; text-align: left; }
+.rvnote .rvhead { font-weight: 700; margin-bottom: 0.3rem; }
+.rvnote .reviewtext { margin: 0 0 0.5rem; }
+.rvnote .sugs { margin-bottom: 0.5rem; }
 </style>
 <div id="app"><div class="empty"><p>Loading.</p></div></div>
 <script>
@@ -1625,6 +1631,70 @@ var Engine = (function () {
     return { history: lines, targets: targets };
   };
 
+  // ---------- changes written by a review ----------
+  // Can this weight be made with the equipment owned?
+  E.canMake = function (w, eq, equip) {
+    if (typeof w !== 'number' || !isFinite(w)) return false;
+    if (eq === 'body') return w === 0;
+    if (eq === 'bar') return w >= equip.bar && E.platesPerSide(w, equip) !== null;
+    if (eq === 'mach') return w > 0 && Math.abs(w / equip.machStep - Math.round(w / equip.machStep)) < 1e-9;
+    return E.ladder(eq, equip).indexOf(w) >= 0;
+  };
+
+  E.SETTING_LIMITS = { topSets: [1, 8], restMain: [0, 300], restAcc: [0, 300] };
+
+  // Applies one change to a profile (the profile is changed in place). The kinds of change:
+  //   { type: 'weight', ex, w, r, from: { w, r } }   next target; "from" is the target the review saw
+  //   { type: 'swap', workout, from, to }            replace an exercise, same muscle group
+  //   { type: 'range', ex, lo, hi }                  rep range
+  //   { type: 'setting', key, value }                topSets, restMain or restAcc
+  // Returns 'applied', 'stale' (the profile has changed since the review was written, so the
+  // change no longer fits) or 'invalid'.
+  E.applyChange = function (profile, g, lib, equip) {
+    var st, idx, lim;
+    function inProgram(key) {
+      return E.ORDER.some(function (wk) { return profile.program[wk].indexOf(key) >= 0; });
+    }
+    function state(key) {
+      if (!profile.ex[key]) profile.ex[key] = JSON.parse(JSON.stringify(E.exState(profile, key, lib)));
+      return profile.ex[key];
+    }
+    if (!g || typeof g !== 'object') return 'invalid';
+    if (g.type === 'weight') {
+      if (!lib[g.ex] || !E.canMake(g.w, lib[g.ex].eq, equip)) return 'invalid';
+      if (typeof g.r !== 'number' || g.r < 1 || g.r > 40 || g.r !== Math.round(g.r)) return 'invalid';
+      if (!inProgram(g.ex)) return 'stale';
+      st = E.exState(profile, g.ex, lib);
+      if (g.from && (st.w !== g.from.w || st.r !== g.from.r)) return 'stale';
+      st = state(g.ex);
+      st.w = g.w; st.r = Math.max(st.lo, Math.min(st.hi, g.r)); st.fails = 0; st.flag = null;
+      return 'applied';
+    }
+    if (g.type === 'swap') {
+      if (!profile.program[g.workout] || !lib[g.from] || !lib[g.to] || lib[g.to].group !== lib[g.from].group) return 'invalid';
+      idx = profile.program[g.workout].indexOf(g.from);
+      if (idx < 0 || profile.program[g.workout].indexOf(g.to) >= 0) return 'stale';
+      profile.program[g.workout][idx] = g.to;
+      return 'applied';
+    }
+    if (g.type === 'range') {
+      if (!lib[g.ex] || typeof g.lo !== 'number' || typeof g.hi !== 'number') return 'invalid';
+      if (g.lo < 1 || g.hi <= g.lo || g.hi > 40 || g.lo !== Math.round(g.lo) || g.hi !== Math.round(g.hi)) return 'invalid';
+      if (!inProgram(g.ex)) return 'stale';
+      st = state(g.ex);
+      st.lo = g.lo; st.hi = g.hi; st.r = Math.max(g.lo, Math.min(g.hi, st.r));
+      if (st.flag === 'maxed' && st.r < st.hi) st.flag = null;
+      return 'applied';
+    }
+    if (g.type === 'setting') {
+      lim = E.SETTING_LIMITS[g.key];
+      if (!lim || typeof g.value !== 'number' || g.value !== Math.round(g.value) || g.value < lim[0] || g.value > lim[1]) return 'invalid';
+      profile.settings[g.key] = g.value;
+      return 'applied';
+    }
+    return 'invalid';
+  };
+
   return E;
 })();
 if (typeof module !== 'undefined') { module.exports = Engine; }
@@ -1800,6 +1870,154 @@ var Store = (function () {
     document.addEventListener('visibilitychange', function () { if (!document.hidden) S.retry(); });
     setInterval(function () { if (Object.keys(queued).length) S.retry(); }, 30000);
   };
+
+  return S;
+})();
+
+// Web copy only. Uploads a copy of the saved data to a private GitHub repository and reads the
+// changes a scheduled Claude review writes there (see review/REVIEW-TASK.md).
+//   data.json         written by this page, read by the review
+//   adjustments.json  written by the review, read by this page
+// The access token is typed once in Settings. It is kept in this browser under its own name,
+// apart from the workout data, and is never part of what is uploaded.
+var Sync = (function () {
+  var KEY = 'garage-gym-sync-v1';
+  var REPO = 'romanf88-arch/garage-gym-data';
+  var st = { token: '', sha: null, hash: null, sentAt: 0, api: '' };
+  var S = { state: 'off', msg: '' };     // state: off, sending, ok, error
+  var opt = null, dirty = false, inflight = false, timer = null, lastPull = 0, gen = 0;
+
+  function load() {
+    try {
+      var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d && typeof d === 'object') { Object.keys(st).forEach(function (k) { if (d[k] !== undefined) st[k] = d[k]; }); }
+    } catch (e) { /* no browser storage */ }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* ignore */ } }
+  function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function unb64(s) { return decodeURIComponent(escape(atob(String(s).replace(/\s/g, '')))); }
+  function hash(s) {
+    var h = 5381, i;
+    for (i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return s.length + ':' + h;
+  }
+  function setState(state, msg) {
+    S.state = state; S.msg = msg || '';
+    if (opt && opt.onChange) { try { opt.onChange(); } catch (e) { /* ignore */ } }
+  }
+  function explain(status) {
+    if (status === 0) return 'No connection to GitHub. The app will try again.';
+    if (status === 401) return 'GitHub did not accept the token. It may have a typo, or it may have expired.';
+    if (status === 403) return 'The token is not allowed to write to the data repository.';
+    if (status === 404) return 'The token cannot see the data repository.';
+    return 'GitHub answered with error ' + status + '. The app will try again.';
+  }
+
+  function call(method, path, body, done) {
+    var x = new XMLHttpRequest(), finished = false;
+    function finish(status, data) { if (!finished) { finished = true; done(status, data); } }
+    try {
+      x.open(method, (st.api || 'https://api.github.com') + '/repos/' + REPO + '/contents/' + path +
+        (method === 'GET' ? '?t=' + Date.now() : ''), true);
+      x.setRequestHeader('Authorization', 'token ' + st.token);
+      x.setRequestHeader('Accept', 'application/vnd.github+json');
+      if (body) x.setRequestHeader('Content-Type', 'application/json');
+      x.onreadystatechange = function () {
+        if (x.readyState !== 4) return;
+        var data = null;
+        try { data = JSON.parse(x.responseText); } catch (e) { /* not JSON */ }
+        finish(x.status, data);
+      };
+      x.send(body ? JSON.stringify(body) : null);
+    } catch (e) { finish(0, null); }
+  }
+
+  // Upload, unless nothing has changed since the last upload. Not during a workout.
+  function push(force) {
+    if (!opt || !st.token || inflight) return;
+    if (!force && opt.busy()) return;
+    var data = opt.getData();
+    var text = JSON.stringify({ equip: data.equip, profiles: data.profiles, sessions: data.sessions });
+    var h = hash(text);
+    if (h === st.hash && st.sha && !force) { dirty = false; if (S.state !== 'ok') setState('ok'); return; }
+    var iso = new Date().toISOString(), startGen = gen;
+    var file ='{"v":1,"at":"' + iso + '","build":' + JSON.stringify(opt.build || '') + ',"data":' + text + '}';
+    inflight = true;
+    setState('sending');
+    function fail(status) { inflight = false; setState('error', explain(status)); }
+    function put(sha, mayRetry) {
+      var req = { message: 'Workout data ' + iso.slice(0, 16).replace('T', ' '), content: b64(file) };
+      if (sha) req.sha = sha;
+      call('PUT', 'data.json', req, function (status, res) {
+        if ((status === 200 || status === 201) && res && res.content && res.content.sha) {
+          st.sha = res.content.sha; st.hash = h; st.sentAt = Date.now(); save();
+          inflight = false; dirty = gen !== startGen;   // a save made during the upload goes next time
+          setState('ok');
+        } else if ((status === 409 || status === 422) && mayRetry) {
+          st.sha = null;
+          find(false);
+        } else fail(status);
+      });
+    }
+    // The file's current id on GitHub is needed to replace it. 404 means there is no file yet.
+    function find(mayRetry) {
+      call('GET', 'data.json', null, function (status, res) {
+        if (status === 200 && res && res.sha) put(res.sha, mayRetry);
+        else if (status === 404) put(null, mayRetry);
+        else fail(status);
+      });
+    }
+    if (st.sha) put(st.sha, true); else find(false);
+  }
+
+  function pull() {
+    if (!opt || !st.token) return;
+    lastPull = Date.now();
+    call('GET', 'adjustments.json', null, function (status, res) {
+      if (status === 401) { setState('error', explain(401)); return; }
+      if (status !== 200 || !res || !res.content) return;
+      var doc = null;
+      try { doc = JSON.parse(unb64(res.content)); } catch (e) { /* unreadable: ignore */ }
+      if (doc && doc.reviews && typeof doc.reviews.length === 'number') opt.onReviews(doc.reviews);
+    });
+  }
+
+  S.init = function (options) {
+    opt = options;
+    load();
+    if (st.token) { S.state = st.sha ? 'ok' : 'sending'; dirty = true; }
+  };
+  S.has = function () { return !!st.token; };
+  S.sentAt = function () { return st.sentAt; };
+  // The saved data changed. Upload a few seconds later, so a burst of saves is one upload.
+  S.changed = function () {
+    if (!st.token) return;
+    dirty = true; gen++;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function () { timer = null; push(false); }, 5000);
+  };
+  // Called once a minute and when the screen wakes.
+  S.tick = function (woke) {
+    if (!st.token) return;
+    if (dirty || S.state === 'error') push(false);
+    if (Date.now() - lastPull > (woke ? 60000 : 600000)) pull();
+  };
+  S.setToken = function (t) {
+    st.token = String(t || '').replace(/\s+/g, '');
+    st.sha = null; st.hash = null; st.sentAt = 0;
+    save();
+    if (!st.token) { setState('off'); return; }
+    push(true);
+    pull();
+  };
+  S.removeToken = function () {
+    st.token = ''; st.sha = null; st.hash = null; st.sentAt = 0;
+    save();
+    setState('off');
+  };
+  S.pushNow = function () { push(true); pull(); };
+  // For tests only: send requests to a stand-in for GitHub.
+  S.testApi = function (base) { st.api = base || ''; save(); };
 
   return S;
 })();
@@ -1986,7 +2204,11 @@ var Store = (function () {
   // ---------- screens ----------
   function statusLine() {
     var txt, cls = '';
-    if (Store.mode === 'local') { txt = 'Saved on this device only'; cls = 'warn'; }
+    if (Store.mode === 'local' && BUILD && Sync.has()) {
+      if (Sync.state === 'error') { txt = 'Backup failed. See Settings.'; cls = 'warn'; }
+      else txt = Sync.state === 'sending' ? 'Backing up' : 'Saved and backed up';
+    }
+    else if (Store.mode === 'local') { txt = 'Saved on this device only'; cls = 'warn'; }
     else if (!Store.confirmed) { txt = Store.slow ? 'Can\'t reach your saved data yet' : 'Loading'; cls = Store.slow ? 'warn' : ''; }
     else if (Store.error && Store.pending()) { txt = 'Not saved online yet. Will retry.'; cls = 'warn'; }
     else if (Store.pending()) txt = 'Saving';
@@ -2017,7 +2239,18 @@ var Store = (function () {
         action = '<div class="next">Next: ' + E.WK_NAMES[wk] + '</div><div class="sub">Last workout: ' + ago(sum.daysSince) + '</div>' +
           '<button class="btn primary big" data-act="open-plan" data-pid="' + p.id + '">Open workout</button>';
       }
-      return '<section class="card person ' + colorClass(p) + '"><h2>' + esc(p.name) + '</h2>' + action +
+      var note = '';
+      if (p.review && p.review.auto && p.review.unread) {
+        var ch = (p.review.suggestions || []).map(function (g) {
+          return '<li><b>' + changeText(g) + '</b><span>' + esc(g.why || '') +
+            (g.applied ? '' : ' Not applied, because this had changed after the review was written.') + '</span></li>';
+        }).join('');
+        note = '<div class="rvnote"><div class="rvhead">Claude review, ' + fmtDate(p.review.date) + '</div>' +
+          (p.review.summary ? '<p class="reviewtext">' + esc(p.review.summary) + '</p>' : '') +
+          (ch ? '<ul class="sugs">' + ch + '</ul>' : '') +
+          '<button class="btn small" data-act="review-ok" data-pid="' + p.id + '">OK</button></div>';
+      }
+      return '<section class="card person ' + colorClass(p) + '"><h2>' + esc(p.name) + '</h2>' + note + action +
         '<div class="links"><button class="link" data-act="nav" data-view="progress" data-pid="' + p.id + '">Progress</button>' +
         '<button class="link" data-act="nav" data-view="settings" data-pid="' + p.id + '">Settings</button></div></section>';
     }).join('');
@@ -2269,22 +2502,78 @@ var Store = (function () {
       '<section class="card"><h2>Recent workouts</h2>' + hist + '</section></div>';
   }
 
+  function changeText(g) {
+    if (g.type === 'swap') return 'Swap ' + esc(exName(g.from)) + ' for ' + esc(exName(g.to)) + ' in ' + E.WK_NAMES[g.workout];
+    if (g.type === 'weight') return esc(exName(g.ex)) + ': set the next target to ' + esc(targetText(g.ex, g.w, g.r));
+    if (g.type === 'setting') {
+      if (g.key === 'topSets') return 'Sets at the top weight: ' + g.value;
+      return (g.key === 'restMain' ? 'Rest on the first exercise: ' : 'Rest on the other exercises: ') + g.value + ' seconds';
+    }
+    return esc(exName(g.ex)) + ': change the rep range to ' + g.lo + ' to ' + g.hi;
+  }
+  function fmtWhen(ms) {
+    var d = new Date(ms), h = d.getHours(), m = d.getMinutes();
+    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + ((h + 11) % 12 + 1) + ':' + (m < 10 ? '0' : '') + m + (h < 12 ? ' AM' : ' PM');
+  }
+
+  // Reviews written by the scheduled Claude task (web copy; see src/sync.js). Each review is
+  // for one person and is applied once, when that person is not in a workout. A change that no
+  // longer fits is kept in the list as not applied, so it can still be applied by hand.
+  function applyReviews(list) {
+    list.forEach(function (r) {
+      if (!r || typeof r.id !== 'string' || !prof(r.pid)) return;
+      var p = prof(r.pid);
+      if ((p.rvSeen || []).indexOf(r.id) >= 0 || activeSession(p.id)) return;
+      p = clone(p);
+      var sugs = [];
+      (Array.isArray(r.changes) ? r.changes : []).slice(0, 6).forEach(function (g) {
+        var res = E.applyChange(p, g, LIB, equip());
+        if (res === 'invalid') return;
+        var c = clone(g);
+        c.why = typeof g.why === 'string' ? g.why.slice(0, 240) : '';
+        c.applied = res === 'applied'; c.stale = res === 'stale';
+        sugs.push(c);
+      });
+      p.rvSeen = (p.rvSeen || []).concat([r.id]).slice(-40);
+      var summary = typeof r.summary === 'string' ? r.summary.slice(0, 1200) : '';
+      if (summary || sugs.length) {
+        p.review = { id: r.id, date: /^[0-9]{4}-[0-9][0-9]-[0-9][0-9]$/.test(r.date) ? r.date : today(), summary: summary, suggestions: sugs, auto: true, unread: true };
+      }
+      Store.saveProfile(p);
+    });
+  }
+
+  function syncCard(pid) {
+    if (!BUILD) return '';
+    var body;
+    if (!Sync.has()) {
+      body = '<p class="sub">The app can upload a copy of your data to your private GitHub repository. A scheduled Claude task on your computer reads it and changes your targets when your log calls for it. The changes show up on the first screen. The upload is also a backup of your history.</p>' +
+        '<label class="field"><span>Access token (paste or type it once)</span><input id="sync-token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." value="' + esc(ui.tokenDraft || '') + '"></label>' +
+        '<button class="btn" data-act="sync-save" data-pid="' + pid + '">Save token</button>';
+    } else {
+      var when = Sync.sentAt() ? 'Last upload: ' + fmtWhen(Sync.sentAt()) + '.' : 'Nothing uploaded yet.';
+      body = (Sync.state === 'error' ? '<p class="sub warnText">' + esc(Sync.msg) + '</p><p class="sub">' + when + '</p>' :
+        '<p class="sub">' + (Sync.state === 'sending' ? 'Uploading.' : 'Connected. ' + when) + '</p>') +
+        '<button class="btn" data-act="sync-now" data-pid="' + pid + '">Upload now</button> ' +
+        '<button class="btn" data-act="sync-remove" data-pid="' + pid + '">Remove token</button>';
+    }
+    return '<section class="card"><h2>Claude review</h2>' + body + '</section>';
+  }
+
   function reviewCard(pid) {
     var p = prof(pid), rv = ui.review[pid], saved = p.review, body = '';
     if (!sample && !saved) return '';
     if (rv && rv.state === 'thinking') body = '<p class="sub">Claude is reading your log. This can take up to a minute.</p>';
     else if (rv && rv.state === 'error') body = '<p class="sub warnText">' + esc(rv.msg) + '</p>';
     var show = (rv && rv.state === 'done') ? rv : saved;
-    if (show && show.summary) {
+    if (show && (show.summary || (show.suggestions || []).length)) {
       var sugs = (show.suggestions || []).map(function (g, i) {
-        var what;
-        if (g.type === 'swap') what = 'Swap ' + esc(exName(g.from)) + ' for ' + esc(exName(g.to)) + ' in ' + E.WK_NAMES[g.workout];
-        else if (g.type === 'weight') what = esc(exName(g.ex)) + ': set the next target to ' + esc(targetText(g.ex, g.w, g.r));
-        else what = esc(exName(g.ex)) + ': change the rep range to ' + g.lo + ' to ' + g.hi;
-        return '<li><b>' + what + '</b><span>' + esc(g.why || '') + '</span>' +
-          (g.applied ? '<em>Applied</em>' : '<button class="btn small" data-act="apply-sug" data-pid="' + pid + '" data-i="' + i + '">Apply</button>') + '</li>';
+        return '<li><b>' + changeText(g) + '</b><span>' + esc(g.why || '') +
+          (g.stale && !g.applied ? ' Not applied by itself, because this had changed after the review was written.' : '') +
+          (g.bad ? ' This could not be applied.' : '') + '</span>' +
+          (g.applied ? '<em>Applied</em>' : g.bad ? '' : '<button class="btn small" data-act="apply-sug" data-pid="' + pid + '" data-i="' + i + '">Apply</button>') + '</li>';
       }).join('');
-      body += '<p class="reviewtext">' + esc(show.summary) + '</p>' + (sugs ? '<ul class="sugs">' + sugs + '</ul>' : '') +
+      body += (show.summary ? '<p class="reviewtext">' + esc(show.summary) + '</p>' : '') + (sugs ? '<ul class="sugs">' + sugs + '</ul>' : '') +
         '<p class="sub">Written by Claude on ' + fmtDate(show.date) + ' from your log. Check its advice against how you feel.</p>';
     }
     var btn = sample && !(rv && rv.state === 'thinking') ?
@@ -2341,6 +2630,7 @@ var Store = (function () {
       '<section class="card"><h2>Data</h2><p class="sub">' +
       (Store.mode === 'online' ? 'Saved in your Claude account, so any device signed in to it shows the same data.' : 'Saved in this browser only.') + '</p>' +
       '<button class="btn danger" data-act="reset" data-pid="' + pid + '">' + (ui.resetArm[pid] ? 'Tap again to erase ' + esc(p.name) + '\'s history and weights' : 'Erase ' + esc(p.name) + '\'s history and weights') + '</button></section>' +
+      syncCard(pid) +
       (BUILD ? '<section class="card"><h2>App version</h2><p class="sub">Version ' + esc(BUILD) + '. The app looks for a newer version by itself and loads it when nobody is in a workout.</p>' +
         '<button class="btn" data-act="update-now" data-pid="' + pid + '">Check now</button>' +
         (upd.msg ? '<p class="sub">' + esc(upd.msg) + '</p>' : '') + '</section>' : '') +
@@ -2428,6 +2718,7 @@ var Store = (function () {
   }
   function storeChanged() {
     if (Store.confirmed) { closeStale(); fixPrograms(); }
+    if (BUILD && Store.confirmed) Sync.changed();
     if (isTyping()) { pendingRender = true; return; }
     render();
   }
@@ -2586,16 +2877,11 @@ var Store = (function () {
     var src = (ui.review[pid] && ui.review[pid].state === 'done') ? ui.review[pid] : p.review;
     var g = src && src.suggestions && src.suggestions[i];
     if (!g || g.applied) return;
-    if (g.type === 'swap') {
-      var idx = p.program[g.workout].indexOf(g.from);
-      if (idx >= 0) p.program[g.workout][idx] = g.to;
-    } else if (g.type === 'weight') {
-      var st = ensureEx(p, g.ex); st.w = g.w; st.r = Math.max(st.lo, Math.min(st.hi, g.r)); st.fails = 0; st.flag = null;
-    } else if (g.type === 'range') {
-      var st2 = ensureEx(p, g.ex); st2.lo = g.lo; st2.hi = g.hi; st2.r = Math.max(g.lo, Math.min(g.hi, st2.r));
-    }
-    g.applied = true;
-    if (p.review && p.review.suggestions && p.review.suggestions[i]) p.review.suggestions[i].applied = true;
+    var c = clone(g);
+    if (c.type === 'weight') delete c.from;      // applied by hand: whatever the target is now
+    var ok = E.applyChange(p, c, LIB, equip()) === 'applied';
+    g.applied = ok; g.bad = !ok;
+    if (p.review && p.review.suggestions && p.review.suggestions[i]) { p.review.suggestions[i].applied = ok; p.review.suggestions[i].bad = !ok; }
     Store.saveProfile(p);
   }
 
@@ -2746,6 +3032,18 @@ var Store = (function () {
       case 'review': if (sample) { askReview(pid); return; } break;
       case 'apply-sug': applySuggestion(pid, Number(d.i)); break;
       case 'update-now': upd.msg = 'Checking.'; checkUpdate(true); break;
+      case 'sync-save':
+        var tokEl = document.getElementById('sync-token');
+        var tok = String(tokEl ? tokEl.value : ui.tokenDraft || '').replace(/[ \t\r\n]+/g, '');
+        if (!tok) break;
+        ui.tokenDraft = '';
+        Sync.setToken(tok);
+        break;
+      case 'sync-now': Sync.pushNow(); break;
+      case 'sync-remove': Sync.removeToken(); break;
+      case 'review-ok':
+        if (p && p.review) { p = clone(p); p.review.unread = false; Store.saveProfile(p); }
+        break;
     }
     if (name !== 'reset') ui.resetArm = {};
     if (name !== 'update-now') upd.msg = '';
@@ -2773,12 +3071,23 @@ var Store = (function () {
   document.addEventListener('visibilitychange', function () { if (!document.hidden && view.name === 'workout') keepAwake(); });
   setInterval(tick, 500);
   if (BUILD) {
+    Sync.init({
+      build: BUILD,
+      getData: function () { return Store.data; },
+      busy: function () { return activePids().length > 0; },
+      onReviews: applyReviews,
+      onChange: function () { if ((view.name === 'settings' || view.name === 'home') && !sheet && !isTyping()) render(); }
+    });
     ['touchstart', 'mousedown', 'keydown'].forEach(function (n) {
       document.addEventListener(n, function () { upd.touched = Date.now(); }, true);
     });
-    setTimeout(function () { checkUpdate(false); }, 5000);
-    setInterval(function () { checkUpdate(false); }, 60000);   // asks the server at most once in ten minutes
-    document.addEventListener('visibilitychange', function () { if (!document.hidden) checkUpdate(false); });
+    // A long token typed into Settings is kept if the screen is drawn again before it is saved.
+    root.addEventListener('input', function (ev) {
+      if (ev.target && ev.target.id === 'sync-token') ui.tokenDraft = ev.target.value;
+    });
+    setTimeout(function () { checkUpdate(false); Sync.tick(true); }, 5000);
+    setInterval(function () { checkUpdate(false); Sync.tick(false); }, 60000);   // each asks its server at most once in ten minutes
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { checkUpdate(false); Sync.tick(true); } });
     window.addEventListener('pageshow', function () { checkUpdate(false); });
   }
 
