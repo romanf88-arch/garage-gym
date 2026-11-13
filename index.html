@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon.png">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.GYM_BUILD = "8e8ab26df1";</script>
 </head>
 <body>
 <title>Garage Gym</title>
@@ -1117,7 +1118,7 @@ var EXLIB = {
   ]
  }
 };
-var DEFAULT_PROGRAM = {"UA": ["bench", "db_row", "db_shoulder_press", "curl", "dip_machine", "lateral"], "LA": ["squat", "rdl", "lunge", "leg_ext", "calf", "crunch"], "UB": ["incline_bench", "bb_row", "arnold", "hammer", "skull", "rear_fly"], "LB": ["deadlift", "goblet", "hip_thrust", "leg_curl", "seated_calf", "rev_crunch"]};
+var DEFAULT_PROGRAM = {"UA": ["db_bench", "db_row", "db_shoulder_press", "curl", "dip_machine", "lateral"], "LA": ["squat", "rdl", "lunge", "leg_ext", "calf", "crunch"], "UB": ["incline_bench", "bb_row", "arnold", "hammer", "skull", "rear_fly"], "LB": ["deadlift", "goblet", "hip_thrust", "leg_curl", "seated_calf", "rev_crunch"]};
 if (typeof module !== 'undefined') { module.exports = { EXLIB: EXLIB, DEFAULT_PROGRAM: DEFAULT_PROGRAM }; }
 
 // Workout rules: what to do today and how targets change after a session.
@@ -1167,10 +1168,24 @@ var Engine = (function () {
 
   E.newProfile = function (id, name, program) {
     return {
-      id: id, name: name, rot: 0, lastDate: null, rev: 0,
+      id: id, name: name, rot: 0, lastDate: null, rev: 0, fix: E.PROGRAM_FIX,
       program: JSON.parse(JSON.stringify(program)),
       ex: {}, settings: E.defaultSettings()
     };
+  };
+
+  // Changes to the default program made after people already had saved profiles. Each change is
+  // applied to a saved profile once. "fix" on the profile is the number of the last change it
+  // has had, so a swap made by hand afterwards is left alone.
+  //   1 (2026-11-12): Upper A opens with the dumbbell bench press, not the barbell bench press.
+  //      The barbell bench press keeps its saved weight and history in case it is swapped back.
+  E.PROGRAM_FIX = 1;
+  E.fixProgram = function (profile) {
+    if ((profile.fix || 0) >= E.PROGRAM_FIX) return false;
+    var ua = profile.program && profile.program.UA;
+    if (ua && ua[0] === 'bench' && ua.indexOf('db_bench') < 0) ua[0] = 'db_bench';
+    profile.fix = E.PROGRAM_FIX;
+    return true;
   };
 
   // ---------- dates ----------
@@ -1875,6 +1890,16 @@ var Store = (function () {
     });
   }
 
+  // Profiles saved before a change to the default program get that change once (Engine.fixProgram).
+  function fixPrograms() {
+    profiles().forEach(function (p) {
+      if ((p.fix || 0) >= E.PROGRAM_FIX) return;
+      p = clone(p);
+      E.fixProgram(p);
+      Store.saveProfile(p);
+    });
+  }
+
   function finishSession(pid, s, quiet) {
     var p = prof(pid);
     s = clone(s);
@@ -2315,7 +2340,11 @@ var Store = (function () {
       '<button class="btn" data-act="equip-save">Save equipment</button></section>' +
       '<section class="card"><h2>Data</h2><p class="sub">' +
       (Store.mode === 'online' ? 'Saved in your Claude account, so any device signed in to it shows the same data.' : 'Saved in this browser only.') + '</p>' +
-      '<button class="btn danger" data-act="reset" data-pid="' + pid + '">' + (ui.resetArm[pid] ? 'Tap again to erase ' + esc(p.name) + '\'s history and weights' : 'Erase ' + esc(p.name) + '\'s history and weights') + '</button></section></div>';
+      '<button class="btn danger" data-act="reset" data-pid="' + pid + '">' + (ui.resetArm[pid] ? 'Tap again to erase ' + esc(p.name) + '\'s history and weights' : 'Erase ' + esc(p.name) + '\'s history and weights') + '</button></section>' +
+      (BUILD ? '<section class="card"><h2>App version</h2><p class="sub">Version ' + esc(BUILD) + '. The app looks for a newer version by itself and loads it when nobody is in a workout.</p>' +
+        '<button class="btn" data-act="update-now" data-pid="' + pid + '">Check now</button>' +
+        (upd.msg ? '<p class="sub">' + esc(upd.msg) + '</p>' : '') + '</section>' : '') +
+      '</div>';
   }
 
   // ---------- sheets ----------
@@ -2398,7 +2427,7 @@ var Store = (function () {
     tick();
   }
   function storeChanged() {
-    if (Store.confirmed) closeStale();
+    if (Store.confirmed) { closeStale(); fixPrograms(); }
     if (isTyping()) { pendingRender = true; return; }
     render();
   }
@@ -2418,6 +2447,53 @@ var Store = (function () {
         el.textContent = 'Rest over';
       } else { delete rest[pid]; el.hidden = true; }
     });
+  }
+
+  // ---------- updates (the web copy only) ----------
+  // The web copy carries the version it was built as (tools/build.py). The newest version is in
+  // version.txt next to the page. When the two differ, the page loads itself again, but only
+  // while nobody is in a workout and nobody has touched the screen for two minutes. On the iPad
+  // the app never closes, so without this it would keep running an old version.
+  var BUILD = window.GYM_BUILD || null;
+  var upd = { checked: 0, want: null, touched: Date.now(), msg: '' };
+  function tune(name, dflt) { var t = window.__gymTest; return t && t[name] !== undefined ? t[name] : dflt; }
+  function updNote(text) {
+    upd.msg = text;
+    if (view.name === 'settings' && !isTyping()) render();
+  }
+  function applyUpdate(manual) {
+    if (!upd.want) return;
+    if (activePids().length) {
+      if (manual) updNote('A newer version is ready. It will load when the workout in progress is finished.');
+      return;
+    }
+    if (!manual && (sheet || isTyping() || view.name === 'workout' || Date.now() - upd.touched < tune('idleMs', 120000))) return;
+    // The new address names the version, so a copy held by a cache on the way cannot be served
+    // again. If that address is already open and the page is still old, do not try again.
+    if (location.search.indexOf('v=' + upd.want) >= 0) {
+      if (manual) updNote('A newer version exists but has not reached this device yet. Try again in ten minutes.');
+      return;
+    }
+    location.replace(location.pathname + '?v=' + upd.want);
+  }
+  function checkUpdate(manual) {
+    if (!BUILD || !window.XMLHttpRequest) return;
+    var now = Date.now();
+    if (!manual && now - upd.checked < tune('checkMs', 600000)) { applyUpdate(false); return; }
+    upd.checked = now;
+    var x = new XMLHttpRequest();
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      var v = x.status === 200 ? String(x.responseText).replace(/\s+/g, '') : '';
+      if (!/^[0-9a-f]{6,40}$/.test(v)) {
+        if (manual) updNote('Could not check. Is the Wi-Fi on?');
+        return;
+      }
+      upd.want = v === BUILD ? null : v;
+      if (manual && !upd.want) updNote('This is the newest version.');
+      else applyUpdate(manual);
+    };
+    try { x.open('GET', 'version.txt?t=' + now, true); x.send(); } catch (e) { if (manual) updNote('Could not check. Is the Wi-Fi on?'); }
   }
 
   // ---------- actions ----------
@@ -2669,8 +2745,10 @@ var Store = (function () {
         break;
       case 'review': if (sample) { askReview(pid); return; } break;
       case 'apply-sug': applySuggestion(pid, Number(d.i)); break;
+      case 'update-now': upd.msg = 'Checking.'; checkUpdate(true); break;
     }
     if (name !== 'reset') ui.resetArm = {};
+    if (name !== 'update-now') upd.msg = '';
     render();
   }
 
@@ -2694,6 +2772,15 @@ var Store = (function () {
   window.addEventListener('resize', function () { if (view.name === 'workout' && !isTyping()) render(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && view.name === 'workout') keepAwake(); });
   setInterval(tick, 500);
+  if (BUILD) {
+    ['touchstart', 'mousedown', 'keydown'].forEach(function (n) {
+      document.addEventListener(n, function () { upd.touched = Date.now(); }, true);
+    });
+    setTimeout(function () { checkUpdate(false); }, 5000);
+    setInterval(function () { checkUpdate(false); }, 60000);   // asks the server at most once in ten minutes
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) checkUpdate(false); });
+    window.addEventListener('pageshow', function () { checkUpdate(false); });
+  }
 
   Store.init(storeChanged);
   if (window.claude && typeof window.claude.use === 'function') {
